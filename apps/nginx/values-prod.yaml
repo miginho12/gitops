@@ -1,0 +1,13 @@
+# PROD 환경 — 안정성 우선
+replicaCount: 3
+
+image:
+  tag: "1.27.3-alpine"   # prod는 버전 고정 (예측 가능성)
+
+resources:
+  requests:
+    cpu: "50m"
+    memory: "32Mi"
+  limits:
+    cpu: "100m"
+    memory: "64Mi"

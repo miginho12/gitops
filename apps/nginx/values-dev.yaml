@@ -1,0 +1,13 @@
+# DEV 환경 — 가볍게, 빠르게
+replicaCount: 1
+
+image:
+  tag: "1.27-alpine"   # dev는 최신 alpine (자동 업데이트 허용)
+
+resources:
+  requests:
+    cpu: "25m"
+    memory: "16Mi"
+  limits:
+    cpu: "50m"
+    memory: "32Mi"
