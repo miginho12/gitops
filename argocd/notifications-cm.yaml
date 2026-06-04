@@ -1,0 +1,76 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: argocd-notifications-cm
+  namespace: argocd
+data:
+  # ─────────────────────────────────────────────
+  # Service: Discord 채널
+  # ─────────────────────────────────────────────
+  service.webhook.discord: |
+    url: $discord-webhook
+    headers:
+    - name: Content-Type
+      value: application/json
+
+  # ─────────────────────────────────────────────
+  # Template: 메시지 양식
+  # ─────────────────────────────────────────────
+  template.app-deployed: |
+    webhook:
+      discord:
+        method: POST
+        body: |
+          {
+            "content": "✅ **{{.app.metadata.name}}** 배포 성공\n📦 Revision: `{{.app.status.sync.revision | substr 0 7}}`\n🌐 Namespace: `{{.app.spec.destination.namespace}}`"
+          }
+
+  template.app-sync-failed: |
+    webhook:
+      discord:
+        method: POST
+        body: |
+          {
+            "content": "❌ **{{.app.metadata.name}}** Sync 실패\n💥 Reason: {{.app.status.operationState.message}}"
+          }
+
+  template.app-health-degraded: |
+    webhook:
+      discord:
+        method: POST
+        body: |
+          {
+            "content": "🔴 **{{.app.metadata.name}}** Health Degraded\n⚠️  Status: {{.app.status.health.status}}"
+          }
+
+  # ─────────────────────────────────────────────
+  # Trigger: 언제 보낼지
+  # ─────────────────────────────────────────────
+  trigger.on-deployed: |
+    - description: Application is synced and healthy
+      send:
+      - app-deployed
+      when: app.status.operationState.phase in ['Succeeded'] and app.status.health.status == 'Healthy'
+
+  trigger.on-sync-failed: |
+    - description: Sync operation failed
+      send:
+      - app-sync-failed
+      when: app.status.operationState.phase in ['Error', 'Failed']
+
+  trigger.on-health-degraded: |
+    - description: Application has degraded
+      send:
+      - app-health-degraded
+      when: app.status.health.status == 'Degraded'
+
+  # ─────────────────────────────────────────────
+  # Default Subscription (모든 Application에 적용)
+  # ─────────────────────────────────────────────
+  subscriptions: |
+    - recipients:
+      - discord
+      triggers:
+      - on-deployed
+      - on-sync-failed
+      - on-health-degraded

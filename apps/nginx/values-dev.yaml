@@ -10,4 +10,4 @@ resources:
     memory: "16Mi"
   limits:
     cpu: "50m"
-    memory: "32Mi"# Day 5 notification test
+    memory: "32Mi"
