@@ -18,45 +18,9 @@ Raspberry Pi 5 (ARM64) 위에 k3s 클러스터를 구성하고, ArgoCD를 통해
 
 ## 🏗 Architecture
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│                        Developer                            │
-│                    git push to GitHub                       │
-└──────────────────────────┬──────────────────────────────────┘
-                           │  webhook / polling
-                           ▼
-┌──────────────────────────────────────────────────────────────┐
-│                      GitHub Repository                       │
-│  ┌─────────────────┐         ┌──────────────────────────┐   │
-│  │   argocd/        │         │   apps/                  │   │
-│  │  ├ root-app.yaml │         │   └── nginx/ (Helm Chart)│   │
-│  │  ├ applications/ │         │       ├ values-dev.yaml  │   │
-│  │  └ notifications │         │       └ values-prod.yaml │   │
-│  └─────────────────┘         └──────────────────────────┘   │
-└──────────────────────┬───────────────────────────────────────┘
-                       │  ArgoCD watches & pulls
-                       ▼
-┌──────────────────────────────────────────────────────────────┐
-│              Raspberry Pi 5  (k3s cluster)                   │
-│                                                              │
-│   ┌─────────────────────────────────────────────────────┐   │
-│   │  ArgoCD (argocd namespace)                          │   │
-│   │   Root App ──► nginx-dev App  ──► nginx (dev ns)    │   │
-│   │             └► nginx-prod App ──► nginx (prod ns)   │   │
-│   └─────────────────────────────────────────────────────┘   │
-│                          │                                   │
-│               sync / health event                            │
-│                          ▼                                   │
-│   ┌──────────────────────────────┐                          │
-│   │  argocd-notifications        │──────► Discord Channel   │
-│   │  (deployed / failed /        │        ✅ ❌ 🔴          │
-│   │   health-degraded)           │                          │
-│   └──────────────────────────────┘                          │
-└──────────────────────────────────────────────────────────────┘
-                       ▲
-         Tailscale (WireGuard Mesh VPN)
-         외부 어디서든 kubectl / ArgoCD UI 접근
-```
+<p align="center">
+  <img src="docs/gitops_architecture.svg" alt="GitOps Architecture on Raspberry Pi 5" width="100%">
+</p>
 
 `apps/`는 실제 워크로드(Helm Chart), `argocd/`는 ArgoCD 관리 리소스(Application, Notification)로 디렉토리를 분리했다. Root App이 `argocd/applications/`를 감시하는 App of Apps 패턴으로, 신규 Application 추가 시 YAML 파일 하나만 커밋하면 자동 등록된다.
 

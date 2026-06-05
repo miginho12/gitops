@@ -1,0 +1,305 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1480 820" font-family="'Noto Sans CJK KR', sans-serif">
+  <defs>
+    <marker id="arr" viewBox="0 0 10 10" refX="10" refY="5"
+            markerWidth="8" markerHeight="8" markerUnits="userSpaceOnUse" orient="auto">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#1E3A5F"/>
+    </marker>
+    <marker id="arr-blue" viewBox="0 0 10 10" refX="10" refY="5"
+            markerWidth="8" markerHeight="8" markerUnits="userSpaceOnUse" orient="auto">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#00A8E8"/>
+    </marker>
+    <marker id="arr-green" viewBox="0 0 10 10" refX="10" refY="5"
+            markerWidth="8" markerHeight="8" markerUnits="userSpaceOnUse" orient="auto">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#10B981"/>
+    </marker>
+    <marker id="arr-orange" viewBox="0 0 10 10" refX="10" refY="5"
+            markerWidth="7" markerHeight="7" markerUnits="userSpaceOnUse" orient="auto">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#F59E0B"/>
+    </marker>
+    <marker id="arr-purple" viewBox="0 0 10 10" refX="10" refY="5"
+            markerWidth="8" markerHeight="8" markerUnits="userSpaceOnUse" orient="auto">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#8B5CF6"/>
+    </marker>
+
+    <style>
+      .svc-icon { fill: #1E3A5F; rx: 6; }
+      .svc-icon-orange { fill: #F59E0B; rx: 6; }
+      .svc-icon-blue   { fill: #00A8E8; rx: 6; }
+      .svc-icon-green  { fill: #10B981; rx: 6; }
+      .svc-icon-purple { fill: #8B5CF6; rx: 6; }
+      .svc-letter { fill: white; font-size: 13px; font-weight: 700; text-anchor: middle; }
+      .svc-label  { fill: #1A1A2E; font-size: 11px; text-anchor: middle; font-weight: 600; }
+      .svc-sub    { fill: #6B7280; font-size: 9px;  text-anchor: middle; }
+
+      .container { fill: none; stroke-width: 1.2; stroke-dasharray: 5,3; rx: 8; }
+      .c-github  { stroke: #1E3A5F; fill: #F4F4F4; fill-opacity: 0.5; }
+      .c-pi      { stroke: #DC2626; fill: #FEF2F2; fill-opacity: 0.35; }
+      .c-argocd  { stroke: #F59E0B; fill: #FEF3C7; fill-opacity: 0.3; stroke-dasharray: 3,3; }
+      .c-ns      { stroke: #00A8E8; fill: #E8F6FC; fill-opacity: 0.4; stroke-dasharray: 3,3; }
+      .c-external{ stroke: #8B5CF6; fill: #F5F3FF; fill-opacity: 0.35; }
+      .c-tunnel  { stroke: #8B5CF6; fill: #F5F3FF; fill-opacity: 0.55; stroke-dasharray: 4,3; rx: 26; }
+
+      .c-label   { font-size: 11px; font-weight: 700; }
+      .l-github  { fill: #1E3A5F; }
+      .l-pi      { fill: #B91C1C; }
+      .l-argocd  { fill: #B45309; font-size: 10px; }
+      .l-ns      { fill: #0369A1; font-size: 10px; }
+      .l-external{ fill: #6D28D9; }
+      .l-tunnel  { fill: #6D28D9; font-size: 11px; font-weight: 700; }
+
+      .flow         { stroke: #1E3A5F; stroke-width: 1.6; fill: none; stroke-linecap: round; }
+      .flow-git     { stroke: #00A8E8; stroke-width: 2.2; fill: none; stroke-linecap: round; }
+      .flow-helm    { stroke: #10B981; stroke-width: 2;   fill: none; stroke-linecap: round; }
+      .flow-notify  { stroke: #F59E0B; stroke-width: 1.5; stroke-dasharray: 5,3; fill: none; stroke-linecap: round; }
+      .flow-tail    { stroke: #8B5CF6; stroke-width: 2.5; stroke-dasharray: 6,4; fill: none; stroke-linecap: round; }
+      .flow-label   { fill: #6B7280; font-size: 9.5px; font-weight: 600; }
+      .flow-label-strong { fill: #1E3A5F; font-size: 10px; font-weight: 700; }
+      .label-bg-strong { fill: white; opacity: 1; }
+
+      .title    { font-size: 18px; font-weight: 700; fill: #142840; }
+      .subtitle { font-size: 11px; fill: #6B7280; }
+    </style>
+  </defs>
+
+  <!-- Title -->
+  <text x="740" y="30" class="title" text-anchor="middle">GitOps on Raspberry Pi 5 — Architecture</text>
+  <text x="740" y="48" class="subtitle" text-anchor="middle">k3s · ArgoCD · Helm · App of Apps · Tailscale · Discord Notifications</text>
+
+  <!-- ═══════════════════════════════════════════════════════════════════
+       LEFT: Developer + GitHub
+       ═══════════════════════════════════════════════════════════════════ -->
+
+  <!-- Developer -->
+  <g transform="translate(50, 220)">
+    <circle cx="22" cy="22" r="20" fill="white" stroke="#1E3A5F" stroke-width="1.5"/>
+    <circle cx="22" cy="17" r="6" fill="#1E3A5F"/>
+    <path d="M 8 32 Q 22 24, 36 32 L 36 40 L 8 40 Z" fill="#1E3A5F"/>
+    <text x="22" y="60" class="svc-label">Developer</text>
+    <text x="22" y="73" class="svc-sub">git push</text>
+  </g>
+
+  <!-- GitHub Container -->
+  <rect class="container c-github" x="155" y="125" width="240" height="380"/>
+  <text x="175" y="145" class="c-label l-github">🐙 GitHub Repository (miginho12/gitops)</text>
+
+  <!-- apps/ -->
+  <g transform="translate(180, 175)">
+    <rect class="svc-icon-green" x="0" y="0" width="48" height="48"/>
+    <text x="24" y="20" class="svc-letter" font-size="10">apps</text>
+    <text x="24" y="34" class="svc-letter" font-size="9">/</text>
+    <text x="24" y="68" class="svc-label">apps/</text>
+    <text x="24" y="82" class="svc-sub">Helm Charts</text>
+  </g>
+  <text x="245" y="190" class="flow-label">workload definition</text>
+  <text x="245" y="204" class="flow-label" fill="#047857">└─ nginx Chart</text>
+  <text x="245" y="218" class="flow-label">  ├ Chart.yaml</text>
+  <text x="245" y="232" class="flow-label">  ├ templates/</text>
+  <text x="245" y="246" class="flow-label">  ├ values.yaml</text>
+  <text x="245" y="260" class="flow-label">  ├ values-dev.yaml</text>
+  <text x="245" y="274" class="flow-label">  └ values-prod.yaml</text>
+
+  <!-- argocd/ -->
+  <g transform="translate(180, 335)">
+    <rect class="svc-icon-orange" x="0" y="0" width="48" height="48"/>
+    <text x="24" y="20" class="svc-letter" font-size="10">argo</text>
+    <text x="24" y="34" class="svc-letter" font-size="9">cd/</text>
+    <text x="24" y="68" class="svc-label">argocd/</text>
+    <text x="24" y="82" class="svc-sub">deploy policy</text>
+  </g>
+  <text x="245" y="350" class="flow-label">App of Apps + Notifications</text>
+  <text x="245" y="364" class="flow-label" fill="#B45309">├ root-app.yaml</text>
+  <text x="245" y="378" class="flow-label">├ applications/</text>
+  <text x="245" y="392" class="flow-label">│  ├ nginx-dev.yaml</text>
+  <text x="245" y="406" class="flow-label">│  └ nginx-prod.yaml</text>
+  <text x="245" y="420" class="flow-label">└ notifications-cm.yaml</text>
+
+  <!-- ═══════════════════════════════════════════════════════════════════
+       CENTER: Raspberry Pi 5 (k3s cluster)
+       ═══════════════════════════════════════════════════════════════════ -->
+  <rect class="container c-pi" x="465" y="125" width="640" height="440"/>
+  <text x="485" y="148" class="c-label l-pi">🍓 Raspberry Pi 5 (8GB · ARM64 · k3s v1.35)</text>
+
+  <!-- ── argocd namespace ── -->
+  <rect class="container c-argocd" x="485" y="170" width="600" height="200"/>
+  <text x="500" y="190" class="c-label l-argocd">⬡ namespace: argocd</text>
+  <text x="660" y="190" class="flow-label" fill="#B45309" font-weight="700">⚙ Auto-sync · Self-heal · Prune · RBAC (admin + viewer)</text>
+
+  <!-- ArgoCD core -->
+  <g transform="translate(510, 210)">
+    <rect class="svc-icon-orange" x="0" y="0" width="56" height="56"/>
+    <text x="28" y="22" class="svc-letter" font-size="12">Argo</text>
+    <text x="28" y="40" class="svc-letter" font-size="12">CD</text>
+    <text x="28" y="78" class="svc-label">ArgoCD v3.4.2</text>
+    <text x="28" y="91" class="svc-sub">7 components</text>
+  </g>
+
+  <!-- root-app -->
+  <g transform="translate(640, 215)">
+    <rect class="svc-icon" x="0" y="0" width="48" height="48"/>
+    <text x="24" y="20" class="svc-letter" font-size="10">root</text>
+    <text x="24" y="34" class="svc-letter" font-size="9">-app</text>
+    <text x="24" y="68" class="svc-label">root-app</text>
+    <text x="24" y="82" class="svc-sub">App of Apps</text>
+  </g>
+
+  <!-- nginx-dev Application -->
+  <g transform="translate(760, 215)">
+    <rect class="svc-icon-blue" x="0" y="0" width="48" height="48"/>
+    <text x="24" y="22" class="svc-letter" font-size="10">App</text>
+    <text x="24" y="36" class="svc-letter" font-size="9">dev</text>
+    <text x="24" y="68" class="svc-label">nginx-dev</text>
+    <text x="24" y="82" class="svc-sub">Application</text>
+  </g>
+
+  <!-- nginx-prod Application -->
+  <g transform="translate(880, 215)">
+    <rect class="svc-icon-blue" x="0" y="0" width="48" height="48"/>
+    <text x="24" y="22" class="svc-letter" font-size="10">App</text>
+    <text x="24" y="36" class="svc-letter" font-size="9">prod</text>
+    <text x="24" y="68" class="svc-label">nginx-prod</text>
+    <text x="24" y="82" class="svc-sub">Application</text>
+  </g>
+
+  <!-- Notifications Controller -->
+  <g transform="translate(1000, 215)">
+    <rect class="svc-icon-orange" x="0" y="0" width="48" height="48"/>
+    <text x="24" y="22" class="svc-letter" font-size="9">Notif</text>
+    <text x="24" y="36" class="svc-letter" font-size="9">Ctrl</text>
+    <text x="24" y="68" class="svc-label">Notifications</text>
+    <text x="24" y="82" class="svc-sub">Controller</text>
+  </g>
+
+  <!-- root-app → nginx-dev/prod (manages) -->
+  <path class="flow" d="M 688 235 L 760 235" marker-end="url(#arr)"/>
+  <path class="flow" d="M 688 250 Q 720 280, 880 245" marker-end="url(#arr)"/>
+
+  <!-- ArgoCD core <-> root-app (controls) -->
+  <path class="flow" d="M 566 235 L 640 235" marker-end="url(#arr)"/>
+  <rect class="label-bg-strong" x="572" y="220" width="62" height="13" rx="2"/>
+  <text x="603" y="230" class="flow-label" fill="#1E3A5F" text-anchor="middle" font-weight="700">manages</text>
+
+  <!-- ArgoCD 기능 라벨은 namespace 헤더에 통합 (위 참조) -->
+
+  <!-- ── dev namespace ── -->
+  <rect class="container c-ns" x="485" y="390" width="280" height="160"/>
+  <text x="500" y="410" class="c-label l-ns">⬡ namespace: dev</text>
+
+  <g transform="translate(580, 425)">
+    <rect class="svc-icon" x="0" y="0" width="46" height="46"/>
+    <text x="23" y="30" class="svc-letter" font-size="13">Pod</text>
+    <text x="23" y="65" class="svc-label" font-size="10">nginx-dev × 1</text>
+    <text x="23" y="78" class="svc-sub">nginx:1.27-alpine</text>
+  </g>
+
+  <text x="625" y="538" class="flow-label" fill="#0369A1" text-anchor="middle">via values-dev.yaml</text>
+
+  <!-- ── prod namespace ── -->
+  <rect class="container c-ns" x="785" y="390" width="300" height="160"/>
+  <text x="800" y="410" class="c-label l-ns">⬡ namespace: prod</text>
+
+  <g transform="translate(820, 425)">
+    <rect class="svc-icon" x="0" y="0" width="46" height="46"/>
+    <text x="23" y="30" class="svc-letter" font-size="13">Pod</text>
+    <text x="23" y="65" class="svc-label" font-size="10">nginx-prod</text>
+  </g>
+  <g transform="translate(900, 425)">
+    <rect class="svc-icon" x="0" y="0" width="46" height="46"/>
+    <text x="23" y="30" class="svc-letter" font-size="13">Pod</text>
+    <text x="23" y="65" class="svc-label" font-size="10">nginx-prod</text>
+  </g>
+  <g transform="translate(980, 425)">
+    <rect class="svc-icon" x="0" y="0" width="46" height="46"/>
+    <text x="23" y="30" class="svc-letter" font-size="13">Pod</text>
+    <text x="23" y="65" class="svc-label" font-size="10">nginx-prod</text>
+  </g>
+
+  <text x="935" y="538" class="flow-label" fill="#0369A1" text-anchor="middle">via values-prod.yaml (pinned: 1.27.3-alpine)</text>
+
+  <!-- Application → Pod deployment arrows -->
+  <path class="flow-helm" d="M 784 268 Q 720 330, 605 420" marker-end="url(#arr-green)"/>
+  <path class="flow-helm" d="M 904 268 Q 900 330, 935 420" marker-end="url(#arr-green)"/>
+  <!-- ③ Helm 라벨 — 두 화살표 곡선 사이 가운데 (ArgoCD 박스 내부 빈 공간) -->
+  <rect class="label-bg-strong" x="820" y="325" width="60" height="20" rx="3" stroke="#047857" stroke-width="0.8"/>
+  <text x="850" y="339" class="flow-label-strong" fill="#047857" text-anchor="middle">③ Helm</text>
+
+  <!-- ═══════════════════════════════════════════════════════════════════
+       RIGHT-TOP: Discord (외부 알림 목적지)
+       ═══════════════════════════════════════════════════════════════════ -->
+  <rect class="container c-external" x="1155" y="125" width="200" height="240"/>
+  <text x="1175" y="148" class="c-label l-external">🔔 Notification Target</text>
+
+  <!-- Discord 박스 (가로형) -->
+  <g transform="translate(1185, 195)">
+    <rect class="svc-icon-purple" x="0" y="0" width="120" height="56"/>
+    <text x="60" y="33" class="svc-letter" font-size="15">Discord</text>
+    <text x="60" y="80" class="svc-label">Discord Channel</text>
+  </g>
+
+  <text x="1255" y="305" class="flow-label" fill="#6D28D9" text-anchor="middle">✅ on-deployed</text>
+  <text x="1255" y="320" class="flow-label" fill="#6D28D9" text-anchor="middle">❌ on-sync-failed</text>
+  <text x="1255" y="335" class="flow-label" fill="#6D28D9" text-anchor="middle">🔴 on-health-degraded</text>
+
+  <!-- Notifications → Discord 화살표 -->
+  <path class="flow-notify" d="M 1048 235 Q 1130 215, 1183 213" marker-end="url(#arr-orange)"/>
+  <rect class="label-bg-strong" x="1095" y="198" width="62" height="14" rx="2"/>
+  <text x="1126" y="209" class="flow-label-strong" fill="#B45309" text-anchor="middle">④ webhook</text>
+
+  <!-- ═══════════════════════════════════════════════════════════════════
+       BOTTOM: Tailscale = Remote User와 Pi 사이의 연결 경로
+       ═══════════════════════════════════════════════════════════════════ -->
+
+  <!-- Remote User (좌측 하단) -->
+  <g transform="translate(195, 645)">
+    <circle cx="22" cy="22" r="20" fill="white" stroke="#8B5CF6" stroke-width="1.8"/>
+    <circle cx="22" cy="17" r="6" fill="#8B5CF6"/>
+    <path d="M 8 32 Q 22 24, 36 32 L 36 40 L 8 40 Z" fill="#8B5CF6"/>
+    <text x="22" y="62" class="svc-label" fill="#6D28D9">Remote User</text>
+    <text x="22" y="76" class="svc-sub">카페 / 모바일 / LTE</text>
+  </g>
+
+  <!-- Tailscale 터널 (Remote User → Pi 5 사이의 캡슐형 경로) -->
+  <rect class="c-tunnel" x="290" y="649" width="430" height="60"/>
+  <text x="505" y="670" class="c-label l-tunnel" text-anchor="middle">🔐 Tailscale Tunnel</text>
+  <text x="505" y="687" class="flow-label" fill="#6D28D9" text-anchor="middle" font-weight="600">WireGuard P2P · 종단간 암호화 · 100.x.x.x</text>
+  <text x="505" y="700" class="flow-label" fill="#6D28D9" text-anchor="middle">SSH · kubectl · ArgoCD UI</text>
+
+  <!-- Remote User → Tailscale Tunnel 화살표 -->
+  <path class="flow-tail" d="M 235 679 L 290 679" marker-end="url(#arr-purple)"/>
+
+  <!-- Tailscale Tunnel → Pi 화살표 -->
+  <path class="flow-tail" d="M 720 679 L 785 679 L 785 570" marker-end="url(#arr-purple)"/>
+
+  <!-- ═══════════════════════════════════════════════════════════════════
+       Major Flows (텍스트 안 겹치도록 - 라벨에 background)
+       ═══════════════════════════════════════════════════════════════════ -->
+
+  <!-- ① Developer → GitHub (git push) -->
+  <path class="flow-git" d="M 95 238 L 145 238 L 145 195 L 175 195" marker-end="url(#arr-blue)"/>
+  <rect class="label-bg-strong" x="100" y="216" width="36" height="14" rx="2"/>
+  <text x="118" y="227" class="flow-label-strong" fill="#00A8E8" text-anchor="middle">① push</text>
+
+  <!-- ② GitHub → ArgoCD (poll) -->
+  <path class="flow-git" d="M 395 235 L 510 235" marker-end="url(#arr-blue)"/>
+  <rect class="label-bg-strong" x="412" y="220" width="80" height="14" rx="2"/>
+  <text x="452" y="231" class="flow-label-strong" fill="#00A8E8" text-anchor="middle">② poll (3분)</text>
+
+  <!-- ═══════════════════════════════════════════════════════════════════
+       Flow Guide + Legend (오른쪽 하단)
+       ═══════════════════════════════════════════════════════════════════ -->
+  <g transform="translate(735, 735)">
+    <text x="0" y="0" class="flow-label" font-weight="700" fill="#1E3A5F">데이터 흐름</text>
+    <text x="0" y="16" class="flow-label">① git push  ② ArgoCD 폴링  ③ Helm 배포  ④ Discord 알림</text>
+
+    <text x="0" y="40" class="flow-label" font-weight="700" fill="#1E3A5F">Legend</text>
+    <line x1="50" y1="36" x2="80" y2="36" stroke="#00A8E8" stroke-width="2.2"/>
+    <text x="86" y="40" class="flow-label">Git sync</text>
+    <line x1="142" y1="36" x2="172" y2="36" stroke="#10B981" stroke-width="2"/>
+    <text x="178" y="40" class="flow-label">Helm deploy</text>
+    <line x1="248" y1="36" x2="278" y2="36" stroke="#1E3A5F" stroke-width="1.6"/>
+    <text x="284" y="40" class="flow-label">Internal control</text>
+    <line x1="370" y1="36" x2="400" y2="36" stroke="#F59E0B" stroke-width="1.5" stroke-dasharray="5,3"/>
+    <text x="406" y="40" class="flow-label">Notification events</text>
+    <line x1="510" y1="36" x2="540" y2="36" stroke="#8B5CF6" stroke-width="2.5" stroke-dasharray="6,4"/>
+    <text x="546" y="40" class="flow-label">Tailscale (encrypted)</text>
+  </g>
+</svg>
