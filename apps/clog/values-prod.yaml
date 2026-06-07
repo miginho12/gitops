@@ -1,0 +1,27 @@
+# prod 환경 override
+# 현재는 dev만 배포. prod는 안정화 후 활성화 예정.
+
+replicaCount: 2
+
+image:
+  tag: ""  # 명시적 sha- 태그 사용 (latest 금지)
+  pullPolicy: IfNotPresent
+
+env:
+  ENVIRONMENT: prod
+  LOG_LEVEL: INFO
+
+resources:
+  limits:
+    cpu: 500m
+    memory: 512Mi
+  requests:
+    cpu: 200m
+    memory: 256Mi
+
+autoscaling:
+  enabled: false  # RPi에서는 일단 비활성
+
+# prod에서는 readOnlyRootFilesystem 강화
+securityContext:
+  readOnlyRootFilesystem: true

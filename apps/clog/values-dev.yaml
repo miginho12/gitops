@@ -1,0 +1,17 @@
+# dev 환경 override
+# values.yaml + 이 파일이 머지됩니다.
+
+image:
+  tag: "latest"  # 처음엔 latest, 안정화되면 sha- 태그 권장
+
+env:
+  ENVIRONMENT: dev
+  LOG_LEVEL: DEBUG
+
+resources:
+  limits:
+    cpu: 300m
+    memory: 384Mi
+  requests:
+    cpu: 50m
+    memory: 128Mi

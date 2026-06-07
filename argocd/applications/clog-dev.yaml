@@ -1,0 +1,39 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: clog-dev
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io  # 앱 삭제 시 리소스도 함께
+spec:
+  project: default
+
+  source:
+    repoURL: https://github.com/miginho12/gitops
+    targetRevision: main
+    path: apps/clog
+    helm:
+      releaseName: clog-dev
+      valueFiles:
+        - values.yaml
+        - values-dev.yaml
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: dev
+
+  syncPolicy:
+    automated:
+      prune: true       # Git에서 삭제된 리소스 자동 삭제
+      selfHeal: true    # 수동 수정 자동 복구 (학습한 패턴)
+      allowEmpty: false
+    syncOptions:
+      - CreateNamespace=true   # dev 네임스페이스 자동 생성
+      - PruneLast=true         # 의존성 고려한 마지막 삭제
+      - ApplyOutOfSyncOnly=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m

@@ -1,0 +1,107 @@
+# Default values for clog.
+# 환경별 override는 values-dev.yaml, values-prod.yaml에서.
+
+replicaCount: 1
+
+image:
+  repository: ghcr.io/miginho12/clog-backend
+  pullPolicy: IfNotPresent
+  # tag는 values-{env}.yaml에서 명시
+  tag: ""
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  create: true
+  automount: true
+  annotations: {}
+  name: ""
+
+podAnnotations: {}
+podLabels: {}
+
+podSecurityContext:
+  fsGroup: 1000
+
+securityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL
+  readOnlyRootFilesystem: false  # 일단 false (FastAPI tmp 사용 가능성)
+  runAsNonRoot: true
+  runAsUser: 1000
+
+service:
+  type: ClusterIP
+  port: 80
+  targetPort: 8000
+
+ingress:
+  enabled: false
+  # 일단 비활성화. Tailscale로 접근하다가 도메인 발급 시 활성화.
+  className: ""
+  annotations: {}
+  hosts:
+    - host: clog.local
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
+
+resources:
+  # RPi 5 (8GB)에 부담 적게
+  limits:
+    cpu: 500m
+    memory: 512Mi
+  requests:
+    cpu: 100m
+    memory: 256Mi
+
+livenessProbe:
+  httpGet:
+    path: /health/live
+    port: http
+  initialDelaySeconds: 10
+  periodSeconds: 30
+  timeoutSeconds: 3
+  failureThreshold: 3
+
+readinessProbe:
+  httpGet:
+    path: /health/ready
+    port: http
+  initialDelaySeconds: 5
+  periodSeconds: 10
+  timeoutSeconds: 3
+  failureThreshold: 3
+
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 3
+  targetCPUUtilizationPercentage: 80
+
+# 애플리케이션 환경변수
+env:
+  ENVIRONMENT: dev
+  LOG_LEVEL: INFO
+  HOST: "0.0.0.0"
+  PORT: "8000"
+
+# ConfigMap으로 만들 추가 설정 (선택)
+configMap:
+  enabled: true
+  data: {}
+
+# Secret 참조 (실제 값은 K8s Secret으로 별도 생성)
+# 다음 세션에 DATABASE_URL 등 추가 예정
+secretRefs: []
+# - name: clog-secrets
+#   keys: [DATABASE_URL, KAKAO_CLIENT_SECRET]
+
+nodeSelector: {}
+tolerations: []
+affinity: {}

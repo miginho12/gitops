@@ -1,0 +1,36 @@
+# prod 환경 ArgoCD Application
+# 현재 상태: 대기 (수동 sync only)
+# 활성화 시점: dev에서 안정성 검증 후
+#
+# 활성화 방법:
+#   syncPolicy.automated를 위 clog-dev.yaml처럼 활성화
+
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: clog-prod
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+
+  source:
+    repoURL: https://github.com/miginho12/gitops
+    targetRevision: main
+    path: apps/clog
+    helm:
+      releaseName: clog-prod
+      valueFiles:
+        - values.yaml
+        - values-prod.yaml
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: prod
+
+  # 자동 sync 비활성 (수동 sync only)
+  # 안정화 후 dev처럼 automated 블록 추가
+  syncPolicy:
+    syncOptions:
+      - CreateNamespace=true
