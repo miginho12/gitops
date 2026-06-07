@@ -3,6 +3,7 @@
 
 image:
   tag: "latest"  # 처음엔 latest, 안정화되면 sha- 태그 권장
+  pullPolicy: Always
 
 env:
   ENVIRONMENT: dev
