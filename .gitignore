@@ -141,3 +141,7 @@ dist
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 .vite/
+
+# Helm chart dependencies (자동 다운로드)
+**/charts/
+**/Chart.lock

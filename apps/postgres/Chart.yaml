@@ -1,0 +1,25 @@
+apiVersion: v2
+name: postgres
+description: PostgreSQL 16 for Clog (Bitnami chart wrapper)
+type: application
+
+# 우리 wrapper chart 자체의 버전
+version: 0.1.0
+
+# 우리가 배포하려는 앱(PostgreSQL)의 버전
+appVersion: "16.4"
+
+keywords:
+  - postgresql
+  - database
+  - clog
+
+maintainers:
+  - name: miginho
+    email: jinhoya89@gmail.com
+
+# ⭐ 핵심: Bitnami PostgreSQL chart 를 의존성으로
+dependencies:
+  - name: postgresql
+    version: 15.5.38     # Bitnami chart 버전 (PostgreSQL appVersion 16.4 포함)
+    repository: https://charts.bitnami.com/bitnami
