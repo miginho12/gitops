@@ -28,7 +28,6 @@ spec:
       allowEmpty: false
     syncOptions:
       - CreateNamespace=true
-      - ServerSideApply=true   # Bitnami chart 의 큰 매니페스트에 권장
     retry:
       limit: 5
       backoff:
@@ -36,9 +35,9 @@ spec:
         factor: 2
         maxDuration: 3m
 
-  # 무시할 필드 (chart 가 자동으로 업데이트하는 필드들)
+  # PVC 는 처음 생성 후 변경 X (StatefulSet 의 volumeClaimTemplates)
   ignoreDifferences:
     - group: apps
       kind: StatefulSet
       jsonPointers:
-        - /spec/volumeClaimTemplates  # PVC template은 한 번 생성 후 변경 X
+        - /spec/volumeClaimTemplates

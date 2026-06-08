@@ -1,0 +1,64 @@
+{{/* PostgreSQL 설정 + 초기화 스크립트 */}}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "postgres.fullname" . }}-config
+  labels:
+    {{- include "postgres.labels" . | nindent 4 }}
+data:
+  postgresql.conf: |
+    # 연결
+    listen_addresses = '*'
+    max_connections = {{ .Values.postgresql.maxConnections }}
+    
+    # 메모리
+    shared_buffers = {{ .Values.postgresql.sharedBuffers }}
+    effective_cache_size = {{ .Values.postgresql.effectiveCacheSize }}
+    maintenance_work_mem = {{ .Values.postgresql.maintenanceWorkMem }}
+    work_mem = {{ .Values.postgresql.workMem }}
+    
+    # WAL
+    wal_level = {{ .Values.postgresql.walLevel }}
+    
+    # 로깅
+    log_destination = 'stderr'
+    logging_collector = off
+    log_statement = 'none'
+    log_min_duration_statement = 1000      # 1초 이상 쿼리 로그
+    
+    # 클라이언트
+    client_min_messages = warning
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "postgres.fullname" . }}-init
+  labels:
+    {{- include "postgres.labels" . | nindent 4 }}
+data:
+  # 첫 시작 시 한 번만 실행됨 (PGDATA 가 비어있을 때)
+  01-init-db.sh: |
+    #!/bin/bash
+    set -e
+    
+    # 사용자 비밀번호 환경변수에서 읽음
+    psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" <<-EOSQL
+      -- clog 사용자 생성
+      CREATE USER {{ .Values.database.user }} WITH PASSWORD '$CLOG_PASSWORD';
+      
+      -- clog_dev 데이터베이스 생성
+      CREATE DATABASE {{ .Values.database.name }} OWNER {{ .Values.database.user }};
+      
+      -- 권한 부여
+      GRANT ALL PRIVILEGES ON DATABASE {{ .Values.database.name }} TO {{ .Values.database.user }};
+    EOSQL
+    
+    # clog_dev 안에서 추가 설정 (extension 등)
+    psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "{{ .Values.database.name }}" <<-EOSQL
+      -- 자주 쓰는 extension
+      CREATE EXTENSION IF NOT EXISTS pgcrypto;
+      
+      -- clog 사용자에게 schema 권한
+      GRANT ALL ON SCHEMA public TO {{ .Values.database.user }};
+    EOSQL

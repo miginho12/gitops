@@ -1,0 +1,153 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ include "postgres.fullname" . }}
+  labels:
+    {{- include "postgres.labels" . | nindent 4 }}
+spec:
+  serviceName: {{ include "postgres.fullname" . }}-hl   # headless service 와 연결
+  replicas: {{ .Values.replicaCount }}
+  
+  selector:
+    matchLabels:
+      {{- include "postgres.selectorLabels" . | nindent 6 }}
+  
+  template:
+    metadata:
+      labels:
+        {{- include "postgres.labels" . | nindent 8 }}
+      annotations:
+        # ConfigMap/Secret 변경 시 자동 재시작
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+    
+    spec:
+      {{- with .Values.podSecurityContext }}
+      securityContext:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      
+      containers:
+        - name: postgres
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          
+          {{- with .Values.securityContext }}
+          securityContext:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          
+          ports:
+            - name: postgres
+              containerPort: 5432
+              protocol: TCP
+          
+          env:
+            # postgres superuser 비밀번호 (Secret 에서)
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.secret.name }}
+                  key: {{ .Values.secret.keys.postgresPassword }}
+            
+            # 초기 DB 이름 (postgres 가 자동 생성)
+            - name: POSTGRES_DB
+              value: postgres        # 기본 admin DB
+            
+            # 초기 user 이름
+            - name: POSTGRES_USER
+              value: postgres
+            
+            # clog 사용자 비밀번호 (init 스크립트에서 사용)
+            - name: CLOG_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.secret.name }}
+                  key: {{ .Values.secret.keys.userPassword }}
+            
+            # PGDATA 경로 (PVC 가 마운트되는 위치)
+            - name: PGDATA
+              value: /var/lib/postgresql/data/pgdata
+          
+          volumeMounts:
+            # 영구 데이터 저장소
+            - name: data
+              mountPath: /var/lib/postgresql/data
+            
+            # 커스텀 postgresql.conf
+            - name: config
+              mountPath: /etc/postgresql/postgresql.conf
+              subPath: postgresql.conf
+            
+            # 초기화 스크립트 (PGDATA 비어있을 때만 실행됨)
+            - name: init
+              mountPath: /docker-entrypoint-initdb.d
+          
+          # 커스텀 설정 파일 사용하도록 명령 지정
+          args:
+            - -c
+            - config_file=/etc/postgresql/postgresql.conf
+          
+          # 시작 확인 (DB가 응답할 준비 됐는지)
+          livenessProbe:
+            exec:
+              command:
+                - pg_isready
+                - -U
+                - postgres
+            initialDelaySeconds: 30      # 시작 시간 충분히
+            periodSeconds: 30
+            timeoutSeconds: 5
+            failureThreshold: 3
+          
+          readinessProbe:
+            exec:
+              command:
+                - pg_isready
+                - -U
+                - postgres
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          
+          # 첫 시작 시 initdb 가 오래 걸릴 수 있음
+          startupProbe:
+            exec:
+              command:
+                - pg_isready
+                - -U
+                - postgres
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            timeoutSeconds: 5
+            failureThreshold: 20         # 최대 100초 대기
+          
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+      
+      volumes:
+        - name: config
+          configMap:
+            name: {{ include "postgres.fullname" . }}-config
+        - name: init
+          configMap:
+            name: {{ include "postgres.fullname" . }}-init
+            defaultMode: 0755          # 실행 가능
+  
+  {{- if .Values.persistence.enabled }}
+  # ⭐ StatefulSet 의 핵심: Pod 마다 PVC 자동 생성
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+        labels:
+          {{- include "postgres.labels" . | nindent 10 }}
+      spec:
+        accessModes:
+          - {{ .Values.persistence.accessMode }}
+        {{- if .Values.persistence.storageClass }}
+        storageClassName: {{ .Values.persistence.storageClass }}
+        {{- end }}
+        resources:
+          requests:
+            storage: {{ .Values.persistence.size }}
+  {{- end }}

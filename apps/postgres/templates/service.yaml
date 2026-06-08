@@ -1,0 +1,36 @@
+{{/* Regular Service - 앱이 연결할 진입점 */}}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "postgres.fullname" . }}
+  labels:
+    {{- include "postgres.labels" . | nindent 4 }}
+spec:
+  type: {{ .Values.service.type }}
+  ports:
+    - name: postgres
+      port: {{ .Values.service.port }}
+      targetPort: postgres
+      protocol: TCP
+  selector:
+    {{- include "postgres.selectorLabels" . | nindent 4 }}
+
+---
+{{/* Headless Service - StatefulSet 의 Pod 별 DNS 용 */}}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "postgres.fullname" . }}-hl
+  labels:
+    {{- include "postgres.labels" . | nindent 4 }}
+spec:
+  type: ClusterIP
+  clusterIP: None              # ⭐ Headless 의 핵심 - IP 없음
+  publishNotReadyAddresses: true  # Pod이 Ready 아니어도 DNS 등록
+  ports:
+    - name: postgres
+      port: {{ .Values.service.port }}
+      targetPort: postgres
+      protocol: TCP
+  selector:
+    {{- include "postgres.selectorLabels" . | nindent 4 }}
