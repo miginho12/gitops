@@ -2,12 +2,30 @@
 # values.yaml + 이 파일이 머지됩니다.
 
 image:
-  tag: "latest"  # 처음엔 latest, 안정화되면 sha- 태그 권장
-  pullPolicy: Always
+  tag: "latest"
+  pullPolicy: Always   # latest 태그 + 캐시 무시
 
 env:
   ENVIRONMENT: dev
   LOG_LEVEL: DEBUG
+
+  # ─── DB 설정 (ConfigMap 으로) ───
+  # 비밀번호 제외 모든 정보 (호스트, 포트, DB명, 사용자)
+  # postgres.dev.svc.cluster.local 은 같은 클러스터의 K8s Service DNS
+  DB_HOST: postgres.dev.svc.cluster.local
+  DB_PORT: "5432"
+  DB_NAME: clog_dev
+  DB_USER: clog
+  DB_POOL_SIZE: "5"
+  DB_POOL_MAX_OVERFLOW: "5"
+  DB_POOL_TIMEOUT: "30"
+  DB_ECHO: "false"
+
+# ─── Secret 참조 (DB 비밀번호) ───
+# 별도 K8s Secret 으로 관리 - git 에 노출되지 않음
+secretRefs:
+  - name: clog-db-credentials
+    keys: [DB_PASSWORD]
 
 resources:
   limits:
