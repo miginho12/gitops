@@ -36,7 +36,7 @@ service:
 # Redis 설정
 redis:
   # AOF 영속성 (모든 쓰기 명령 추가)
-  appendonly: yes
+  appendonly: "yes"
   # AOF fsync 정책: 1초마다 (성능과 안전의 균형)
   appendfsync: "everysec"
   
