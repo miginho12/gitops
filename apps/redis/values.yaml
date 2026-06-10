@@ -1,0 +1,64 @@
+# Redis 커스텀 chart values
+
+image:
+  repository: redis
+  tag: "7-alpine"
+  pullPolicy: IfNotPresent
+
+replicaCount: 1
+
+# Secret 참조 (수동 생성)
+secret:
+  name: redis-credentials
+  passwordKey: redis-password
+
+# 저장소
+persistence:
+  enabled: true
+  storageClass: ""
+  size: 2Gi              # PostgreSQL (4Gi) 보다 작게
+  accessMode: ReadWriteOnce
+
+# 자원 (RPi 환경)
+resources:
+  limits:
+    cpu: 200m
+    memory: 256Mi
+  requests:
+    cpu: 50m
+    memory: 64Mi
+
+# 서비스
+service:
+  type: ClusterIP
+  port: 6379
+
+# Redis 설정
+redis:
+  # AOF 영속성 (모든 쓰기 명령 추가)
+  appendonly: true
+  # AOF fsync 정책: 1초마다 (성능과 안전의 균형)
+  appendfsync: "everysec"
+  
+  # 메모리 정책 (RPi 환경 고려)
+  maxmemory: "200mb"
+  # 만료 정책 (LRU - 사용 안 된 키 제거)
+  maxmemoryPolicy: "allkeys-lru"
+  
+  # 로그 수준
+  loglevel: "notice"
+  
+  # 연결 제한
+  maxclients: 100
+  
+  # TCP keepalive
+  tcpKeepalive: 60
+
+# Pod 보안
+podSecurityContext:
+  fsGroup: 999
+
+securityContext:
+  runAsUser: 999
+  runAsGroup: 999
+  runAsNonRoot: true

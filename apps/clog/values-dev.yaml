@@ -1,17 +1,12 @@
-# dev 환경 override
-# values.yaml + 이 파일이 머지됩니다.
-
 image:
   tag: "latest"
-  pullPolicy: Always   # latest 태그 + 캐시 무시
+  pullPolicy: Always
 
 env:
   ENVIRONMENT: dev
   LOG_LEVEL: DEBUG
 
-  # ─── DB 설정 (ConfigMap 으로) ───
-  # 비밀번호 제외 모든 정보 (호스트, 포트, DB명, 사용자)
-  # postgres.dev.svc.cluster.local 은 같은 클러스터의 K8s Service DNS
+  # DB
   DB_HOST: postgres.dev.svc.cluster.local
   DB_PORT: "5432"
   DB_NAME: clog_dev
@@ -21,11 +16,28 @@ env:
   DB_POOL_TIMEOUT: "30"
   DB_ECHO: "false"
 
-# ─── Secret 참조 (DB 비밀번호) ───
-# 별도 K8s Secret 으로 관리 - git 에 노출되지 않음
+  # JWT (Day 11)
+  JWT_ACCESS_TOKEN_EXPIRE_MINUTES: "60"
+  JWT_REFRESH_TOKEN_EXPIRE_DAYS: "7"
+  JWT_ALGORITHM: "RS256"
+  JWT_ISSUER: "clog-backend"
+
+  # Redis (Day 11B) ⭐
+  REDIS_HOST: redis.dev.svc.cluster.local
+  REDIS_PORT: "6379"
+  REDIS_DB: "0"
+  REDIS_MAX_CONNECTIONS: "20"
+  REDIS_SOCKET_TIMEOUT: "5"
+  REDIS_CONNECT_TIMEOUT: "5"
+
+# Secret 참조
 secretRefs:
   - name: clog-db-credentials
     keys: [DB_PASSWORD]
+  - name: clog-jwt-keys           # JWT private/public 키
+    keys: [JWT_PRIVATE_KEY, JWT_PUBLIC_KEY]
+  - name: clog-redis-credentials  # ⭐ Day 11B - Redis 비밀번호
+    keys: [REDIS_PASSWORD]
 
 resources:
   limits:

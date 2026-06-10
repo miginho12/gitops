@@ -1,0 +1,19 @@
+apiVersion: v2
+name: redis
+description: Redis 7 (custom chart, alpine image)
+type: application
+
+version: 0.1.0
+appVersion: "7"
+
+keywords:
+  - redis
+  - cache
+  - clog
+
+maintainers:
+  - name: miginho
+    email: jinhoya89@gmail.com
+
+# 의존성 없음 - 우리가 직접 작성한 커스텀 chart
+# 공식 redis:7-alpine 이미지 사용 (multi-arch)

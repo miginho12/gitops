@@ -1,0 +1,36 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "redis.fullname" . }}-config
+  labels:
+    {{- include "redis.labels" . | nindent 4 }}
+data:
+  redis.conf: |
+    # 네트워크
+    bind 0.0.0.0
+    port 6379
+    tcp-keepalive {{ .Values.redis.tcpKeepalive }}
+    
+    # 메모리
+    maxmemory {{ .Values.redis.maxmemory }}
+    maxmemory-policy {{ .Values.redis.maxmemoryPolicy }}
+    
+    # AOF 영속성
+    appendonly {{ .Values.redis.appendonly }}
+    appendfsync {{ .Values.redis.appendfsync }}
+    dir /data
+    
+    # RDB 도 함께 (백업 보조)
+    save 900 1
+    save 300 10
+    save 60 10000
+    
+    # 로깅
+    loglevel {{ .Values.redis.loglevel }}
+    
+    # 연결
+    maxclients {{ .Values.redis.maxclients }}
+    timeout 300
+    
+    # 비밀번호 (env 에서 주입한 REDIS_PASSWORD 를 시작 시 적용)
+    # → command line 인자로 전달 (statefulset.yaml 참조)

@@ -145,3 +145,5 @@ vite.config.ts.timestamp-*
 # Helm chart dependencies (자동 다운로드)
 **/charts/
 **/Chart.lock
+SECRET_SETUP.md
+CLOG_DB_SECRET_SETUP.md
