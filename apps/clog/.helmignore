@@ -1,0 +1,5 @@
+*.backup
+*.backup-*
+*.bak
+*.old
+.DS_Store

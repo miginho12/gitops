@@ -2,6 +2,13 @@ image:
   tag: "latest"
   pullPolicy: Always
 
+# ⭐ Day 13 추가: Service 를 NodePort 로 변경
+# 라즈베리파이의 30080 포트로 외부 노출, Tailscale Funnel 이 이 포트로 전달
+service:
+  type: NodePort
+  port: 80
+  nodePort: 30080
+
 env:
   ENVIRONMENT: dev
   LOG_LEVEL: DEBUG
@@ -22,7 +29,7 @@ env:
   JWT_ALGORITHM: "RS256"
   JWT_ISSUER: "clog-backend"
 
-  # Redis (Day 11B) ⭐
+  # Redis (Day 11B)
   REDIS_HOST: redis.dev.svc.cluster.local
   REDIS_PORT: "6379"
   REDIS_DB: "0"
@@ -30,14 +37,22 @@ env:
   REDIS_SOCKET_TIMEOUT: "5"
   REDIS_CONNECT_TIMEOUT: "5"
 
+  # ⭐ Day 13 추가: 카카오 OAuth 외부 URL
+  # 카카오에 가입/로그인 시 사용자가 돌아오는 URL
+  # K8s 환경에선 외부 도메인 사용
+  KAKAO_REDIRECT_URI: "https://clog.tail099985.ts.net/auth/kakao/callback"
+
 # Secret 참조
 secretRefs:
   - name: clog-db-credentials
     keys: [DB_PASSWORD]
-  - name: clog-jwt-keys           # JWT private/public 키
+  - name: clog-jwt-keys
     keys: [JWT_PRIVATE_KEY, JWT_PUBLIC_KEY]
-  - name: clog-redis-credentials  # ⭐ Day 11B - Redis 비밀번호
+  - name: clog-redis-credentials
     keys: [REDIS_PASSWORD]
+  # ⭐ Day 13: 카카오 OAuth 자격증명
+  - name: clog-kakao-credentials
+    keys: [KAKAO_CLIENT_ID, KAKAO_CLIENT_SECRET]
 
 resources:
   limits:

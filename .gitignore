@@ -147,3 +147,6 @@ vite.config.ts.timestamp-*
 **/Chart.lock
 SECRET_SETUP.md
 CLOG_DB_SECRET_SETUP.md
+# Day 13 - backup files
+*.backup-*
+*.bak
