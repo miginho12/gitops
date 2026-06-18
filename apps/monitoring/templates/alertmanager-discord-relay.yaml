@@ -22,7 +22,7 @@ spec:
     spec:
       containers:
         - name: relay
-          image: benjojo/alertmanager-discord:latest
+          image: rogerrum/alertmanager-discord:latest
           ports:
             - containerPort: 9094
           env:
@@ -69,7 +69,7 @@ spec:
     spec:
       containers:
         - name: relay
-          image: benjojo/alertmanager-discord:latest
+          image: rogerrum/alertmanager-discord:latest
           ports:
             - containerPort: 9094
           env:
