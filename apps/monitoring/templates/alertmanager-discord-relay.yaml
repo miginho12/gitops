@@ -1,0 +1,98 @@
+# ============================================================
+# alertmanager-discord (sj14/alertmanager-discord)
+# AlertManager 의 generic webhook → Discord 형식 변환
+# ============================================================
+
+# ── infra 채널 ──
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: alertmanager-discord-infra
+  namespace: {{ .Release.Namespace }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: alertmanager-discord-infra
+  template:
+    metadata:
+      labels:
+        app: alertmanager-discord-infra
+    spec:
+      containers:
+        - name: relay
+          image: benjojo/alertmanager-discord:latest
+          ports:
+            - containerPort: 9094
+          env:
+            - name: DISCORD_WEBHOOK
+              valueFrom:
+                secretKeyRef:
+                  name: discord-webhooks
+                  key: infra
+          resources:
+            requests:
+              memory: 16Mi
+              cpu: 10m
+            limits:
+              memory: 64Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: alertmanager-discord-infra
+  namespace: {{ .Release.Namespace }}
+spec:
+  selector:
+    app: alertmanager-discord-infra
+  ports:
+    - port: 9094
+      targetPort: 9094
+
+# ── service 채널 ──
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: alertmanager-discord-service
+  namespace: {{ .Release.Namespace }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: alertmanager-discord-service
+  template:
+    metadata:
+      labels:
+        app: alertmanager-discord-service
+    spec:
+      containers:
+        - name: relay
+          image: benjojo/alertmanager-discord:latest
+          ports:
+            - containerPort: 9094
+          env:
+            - name: DISCORD_WEBHOOK
+              valueFrom:
+                secretKeyRef:
+                  name: discord-webhooks
+                  key: service
+          resources:
+            requests:
+              memory: 16Mi
+              cpu: 10m
+            limits:
+              memory: 64Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: alertmanager-discord-service
+  namespace: {{ .Release.Namespace }}
+spec:
+  selector:
+    app: alertmanager-discord-service
+  ports:
+    - port: 9094
+      targetPort: 9094

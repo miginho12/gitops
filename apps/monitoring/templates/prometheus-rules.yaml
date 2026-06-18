@@ -1,0 +1,110 @@
+# ============================================================
+# 진호님 커스텀 알람 정책 (Day 15)
+# ============================================================
+
+# ── 인프라 알람 (category=infra) ──
+---
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: infra-alerts
+  namespace: {{ .Release.Namespace }}
+  labels:
+    release: monitoring
+spec:
+  groups:
+    - name: infra
+      interval: 30s
+      rules:
+        # 디스크 80% 이상
+        - alert: HighDiskUsage
+          expr: |
+            (1 - (node_filesystem_avail_bytes{fstype!="tmpfs",fstype!="overlay"} 
+                  / node_filesystem_size_bytes{fstype!="tmpfs",fstype!="overlay"})) > 0.8
+          for: 10m
+          labels:
+            severity: warning
+            category: infra
+          annotations:
+            summary: "디스크 사용량 80% 초과 - {{`{{ $labels.mountpoint }}`}}"
+            description: "노드 {{`{{ $labels.instance }}`}} 의 {{`{{ $labels.mountpoint }}`}} 디스크 사용량 {{`{{ $value | humanizePercentage }}`}}"
+        
+        # 메모리 80%
+        - alert: HighMemoryUsage
+          expr: |
+            (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) > 0.8
+          for: 10m
+          labels:
+            severity: warning
+            category: infra
+          annotations:
+            summary: "라즈베리파이 메모리 사용량 80% 초과"
+            description: "노드 {{`{{ $labels.instance }}`}} 메모리 사용량 {{`{{ $value | humanizePercentage }}`}}"
+        
+        # CPU 80% sustained
+        - alert: HighCPUUsage
+          expr: |
+            (1 - rate(node_cpu_seconds_total{mode="idle"}[5m])) > 0.8
+          for: 15m
+          labels:
+            severity: warning
+            category: infra
+          annotations:
+            summary: "CPU 사용량 80% 지속"
+            description: "노드 {{`{{ $labels.instance }}`}} CPU 사용량 {{`{{ $value | humanizePercentage }}`}} (15분 지속)"
+
+# ── 클로그 서비스 알람 (category=service) ──
+---
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: clog-service-alerts
+  namespace: {{ .Release.Namespace }}
+  labels:
+    release: monitoring
+spec:
+  groups:
+    - name: clog-service
+      interval: 30s
+      rules:
+        # HTTP 5xx 에러율 > 5%
+        - alert: ClogHighErrorRate
+          expr: |
+            (
+              sum(rate(starlette_requests_total{app="clog-backend",status_code=~"5.."}[5m]))
+              /
+              sum(rate(starlette_requests_total{app="clog-backend"}[5m]))
+            ) > 0.05
+          for: 5m
+          labels:
+            severity: critical
+            category: service
+          annotations:
+            summary: "clog-backend 5xx 에러율 5% 초과"
+            description: "최근 5분 에러율 {{`{{ $value | humanizePercentage }}`}}"
+        
+        # p95 응답시간 > 1초
+        - alert: ClogHighLatency
+          expr: |
+            histogram_quantile(0.95,
+              sum(rate(starlette_request_duration_seconds_bucket{app="clog-backend"}[5m])) by (le)
+            ) > 1.0
+          for: 5m
+          labels:
+            severity: warning
+            category: service
+          annotations:
+            summary: "clog-backend p95 응답시간 1초 초과"
+            description: "p95 = {{`{{ $value }}`}}s (목표: 200ms 이하)"
+        
+        # Rate limit 비정상 폭증 (5분간 100건 이상)
+        - alert: ClogRateLimitSurge
+          expr: |
+            sum(rate(starlette_requests_total{app="clog-backend",status_code="429"}[5m])) > 0.33
+          for: 5m
+          labels:
+            severity: warning
+            category: service
+          annotations:
+            summary: "clog-backend rate limit 발동 폭증"
+            description: "5분간 429 응답 폭증 - DDoS 의심 또는 정상 트래픽 폭증"
