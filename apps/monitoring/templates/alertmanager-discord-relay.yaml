@@ -32,7 +32,7 @@ spec:
                   name: discord-webhooks
                   key: infra
             - name: DISCORD_USERNAME
-              value: "clog-alerts"
+              value: "infra"
           resources:
             requests:
               memory: 16Mi
@@ -81,7 +81,7 @@ spec:
                   name: discord-webhooks
                   key: service
             - name: DISCORD_USERNAME
-              value: "clog-alerts"
+              value: "service"
           resources:
             requests:
               memory: 16Mi
