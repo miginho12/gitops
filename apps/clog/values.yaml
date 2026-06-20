@@ -105,3 +105,7 @@ secretRefs: []
 nodeSelector: {}
 tolerations: []
 affinity: {}
+
+# Day 15: Prometheus ServiceMonitor
+serviceMonitor:
+  enabled: false
