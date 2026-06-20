@@ -1,5 +1,5 @@
 image:
-  tag: "latest"
+  tag: "sha-9b3e1c1"
   pullPolicy: Always
 
 # ⭐ Day 13 추가: Service 를 NodePort 로 변경
