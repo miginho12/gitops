@@ -1,6 +1,6 @@
 image:
   tag: "sha-9b3e1c1"
-  pullPolicy: Always
+  pullPolicy: IfNotPresent
 
 # ⭐ Day 13 추가: Service 를 NodePort 로 변경
 # 라즈베리파이의 30080 포트로 외부 노출, Tailscale Funnel 이 이 포트로 전달
