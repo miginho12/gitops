@@ -1,0 +1,20 @@
+apiVersion: v2
+name: clog-frontend
+description: Clog - 클라이밍 기록 + 커뮤니티 서비스 프론트엔드 (React SPA + nginx)
+type: application
+# 차트 버전 (Helm Chart 자체의 버전)
+version: 0.1.0
+# 애플리케이션 버전 (이미지 태그와 정렬)
+appVersion: "0.1.0"
+keywords:
+  - climbing
+  - react
+  - vite
+  - nginx
+  - clog
+maintainers:
+  - name: miginho
+    email: jinhoya89@gmail.com
+home: https://github.com/miginho12/clog-frontend
+sources:
+  - https://github.com/miginho12/clog-frontend

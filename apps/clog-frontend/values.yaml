@@ -1,0 +1,47 @@
+# Clog 프론트엔드 기본 values
+# 환경별 override는 values-dev.yaml 에서.
+
+replicaCount: 1
+
+image:
+  repository: ghcr.io/miginho12/clog-frontend
+  pullPolicy: IfNotPresent
+  # tag는 values-dev.yaml 에서 명시 (CI가 SHA로 자동 업데이트)
+  tag: ""
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+podSecurityContext:
+  fsGroup: 101  # nginx-alpine의 nginx 그룹
+
+securityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL
+    add:
+      - NET_BIND_SERVICE  # 80 포트 바인딩
+  readOnlyRootFilesystem: false
+  runAsNonRoot: false  # nginx 공식 이미지는 root로 시작 후 worker를 nginx 유저로
+
+service:
+  type: NodePort
+  port: 80
+  targetPort: 80
+  # 백엔드(30080)와 분리
+  nodePort: 30081
+
+resources:
+  # nginx는 가벼움 (RPi 부담 최소)
+  limits:
+    cpu: 200m
+    memory: 128Mi
+  requests:
+    cpu: 50m
+    memory: 32Mi
+
+nodeSelector: {}
+tolerations: []
+affinity: {}

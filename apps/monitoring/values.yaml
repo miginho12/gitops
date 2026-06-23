@@ -97,6 +97,13 @@ kube-prometheus-stack:
         receiver: 'discord-infra'  # default fallback
         routes:
           - matchers:
+              - alertname=~"Watchdog|InfoInhibitor|KubeProxyDown"
+            receiver: 'null'
+          - matchers:
+              - alertname="KubePodCrashLooping"
+              - pod=~"argocd-applicationset-controller.*"
+            receiver: 'null'
+          - matchers:
               - category="service"
             receiver: 'discord-service'
           - matchers:
@@ -104,6 +111,7 @@ kube-prometheus-stack:
             receiver: 'discord-infra'
       
       receivers:
+        - name: 'null'
         - name: 'discord-infra'
           webhook_configs:
             - url: 'http://alertmanager-discord-infra:9094'
