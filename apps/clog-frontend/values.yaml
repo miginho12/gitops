@@ -13,18 +13,14 @@ imagePullSecrets: []
 nameOverride: ""
 fullnameOverride: ""
 
-podSecurityContext:
-  fsGroup: 101  # nginx-alpine의 nginx 그룹
+podSecurityContext: {}
 
 securityContext:
+  # nginx 공식 이미지는 root 마스터로 시작해 캐시 디렉토리를 chown 후
+  # worker 를 nginx 유저로 강등. capabilities 를 과하게 drop 하면
+  # 마스터의 chown 이 실패하므로 표준 동작을 허용한다.
   allowPrivilegeEscalation: false
-  capabilities:
-    drop:
-      - ALL
-    add:
-      - NET_BIND_SERVICE  # 80 포트 바인딩
   readOnlyRootFilesystem: false
-  runAsNonRoot: false  # nginx 공식 이미지는 root로 시작 후 worker를 nginx 유저로
 
 service:
   type: NodePort
