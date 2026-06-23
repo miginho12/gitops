@@ -40,7 +40,9 @@ env:
   # ⭐ Day 13 추가: 카카오 OAuth 외부 URL
   # 카카오에 가입/로그인 시 사용자가 돌아오는 URL
   # K8s 환경에선 외부 도메인 사용
-  KAKAO_REDIRECT_URI: "https://clog.tail099985.ts.net/auth/kakao/callback"
+  KAKAO_REDIRECT_URI: "https://clog.tail099985.ts.net/api/auth/kakao/callback"
+  # 카카오 콜백 후 토큰을 담아 리다이렉트할 프론트 주소
+  FRONTEND_URL: "https://clog.tail099985.ts.net"
 
 # Secret 참조
 secretRefs:
