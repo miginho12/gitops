@@ -18,6 +18,13 @@ kube-prometheus-stack:
       enabled: true
       size: 5Gi
       storageClassName: local-path
+
+    resources:
+      requests:
+        memory: 256Mi
+        cpu: 50m
+      limits:
+        memory: 640Mi
     
     # Loki datasource 자동 추가
     additionalDataSources:
