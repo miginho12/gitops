@@ -43,6 +43,12 @@ env:
   KAKAO_REDIRECT_URI: "https://clog.tail099985.ts.net/api/auth/kakao/callback"
   # 카카오 콜백 후 토큰을 담아 리다이렉트할 프론트 주소
   FRONTEND_URL: "https://clog.tail099985.ts.net"
+  # MinIO (미디어 업로드)
+  MINIO_ENDPOINT: "minio.dev.svc.cluster.local:9000"
+  MINIO_BUCKET: "clog-media"
+  MINIO_SECURE: "false"
+  # 외부 presigned 호스트 (외부 노출 후 채움 — 비면 endpoint 폴백)
+  MINIO_PUBLIC_ENDPOINT: ""
 
 # Secret 참조
 secretRefs:
@@ -55,6 +61,9 @@ secretRefs:
   # ⭐ Day 13: 카카오 OAuth 자격증명
   - name: clog-kakao-credentials
     keys: [KAKAO_CLIENT_ID, KAKAO_CLIENT_SECRET]
+  # MinIO 자격증명 (백엔드 presigned 발급용)
+  - name: minio-credentials
+    keys: [MINIO_ACCESS_KEY, MINIO_SECRET_KEY]
 
 resources:
   limits:
