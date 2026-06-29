@@ -46,9 +46,9 @@ env:
   # MinIO (미디어 업로드)
   MINIO_ENDPOINT: "minio.dev.svc.cluster.local:9000"
   MINIO_BUCKET: "clog-media"
-  MINIO_SECURE: "false"
+  MINIO_SECURE: "true"
   # 외부 presigned 호스트 (외부 노출 후 채움 — 비면 endpoint 폴백)
-  MINIO_PUBLIC_ENDPOINT: ""
+  MINIO_PUBLIC_ENDPOINT: "clog.tail099985.ts.net"
 
 # Secret 참조
 secretRefs:
