@@ -1,0 +1,15 @@
+apiVersion: v2
+name: minio
+description: Clog - MinIO 오브젝트 스토리지 (미디어 업로드용, S3 호환)
+type: application
+version: 0.1.0
+appVersion: "RELEASE.2025-04-22"
+keywords:
+  - minio
+  - s3
+  - object-storage
+  - clog
+maintainers:
+  - name: miginho
+    email: jinhoya89@gmail.com
+home: https://github.com/miginho12/gitops

@@ -1,0 +1,37 @@
+# MinIO 커스텀 chart values (단일 인스턴스 standalone)
+image:
+  repository: minio/minio
+  # arm64 네이티브 멀티아치 (라즈베리파이 OK)
+  tag: "RELEASE.2025-04-22T22-12-26Z"
+  pullPolicy: IfNotPresent
+
+# Secret 참조 (수동 생성: minio-credentials)
+secret:
+  name: minio-credentials
+  rootUserKey: root-user
+  rootPasswordKey: root-password
+
+# 저장소 (미디어: 영상+이미지)
+persistence:
+  enabled: true
+  storageClass: ""
+  size: 20Gi
+  accessMode: ReadWriteOnce
+
+# 자원 (RPi 환경 — redis 보다 여유있게)
+resources:
+  limits:
+    cpu: 500m
+    memory: 512Mi
+  requests:
+    cpu: 100m
+    memory: 128Mi
+
+# 서비스 (S3 API 9000 + 콘솔 9001)
+service:
+  type: ClusterIP
+  apiPort: 9000
+  consolePort: 9001
+
+# 버킷 (참고용 — 생성은 mc 로 수동/Job)
+defaultBucket: clog-media
