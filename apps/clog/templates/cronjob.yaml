@@ -1,0 +1,54 @@
+{{- if .Values.mediaReconcile.enabled }}
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: {{ include "clog.fullname" . }}-media-reconcile
+  labels:
+    {{- include "clog.labels" . | nindent 4 }}
+    app.kubernetes.io/component: media-reconcile
+spec:
+  schedule: {{ .Values.mediaReconcile.schedule | quote }}
+  timeZone: {{ .Values.mediaReconcile.timeZone | default "Etc/UTC" | quote }}
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: {{ .Values.mediaReconcile.successfulJobsHistoryLimit | default 3 }}
+  failedJobsHistoryLimit: {{ .Values.mediaReconcile.failedJobsHistoryLimit | default 3 }}
+  startingDeadlineSeconds: 300
+  jobTemplate:
+    spec:
+      backoffLimit: 2
+      activeDeadlineSeconds: 600
+      template:
+        metadata:
+          labels:
+            {{- include "clog.selectorLabels" . | nindent 12 }}
+            app.kubernetes.io/component: media-reconcile
+        spec:
+          restartPolicy: OnFailure
+          containers:
+            - name: media-reconcile
+              image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+              imagePullPolicy: {{ .Values.image.pullPolicy }}
+              command:
+                - python
+                - -m
+                - app.scripts.media_reconcile
+                {{- if .Values.mediaReconcile.apply }}
+                - --apply
+                {{- end }}
+              envFrom:
+                {{- if .Values.configMap.enabled }}
+                - configMapRef:
+                    name: {{ include "clog.fullname" . }}
+                {{- end }}
+                {{- range .Values.secretRefs }}
+                - secretRef:
+                    name: {{ .name }}
+                {{- end }}
+              resources:
+                requests:
+                  cpu: 50m
+                  memory: 128Mi
+                limits:
+                  cpu: 200m
+                  memory: 256Mi
+{{- end }}
