@@ -80,7 +80,7 @@ serviceMonitor:
 mediaReconcile:
   enabled: true
   # 처음엔 dry-run(false)로 검증 → 확인 후 true 로 전환
-  apply: false
+  apply: true
   schedule: "0 18 * * *"   # UTC 18:00 = KST 03:00 매일
   timeZone: "Etc/UTC"
   successfulJobsHistoryLimit: 3
