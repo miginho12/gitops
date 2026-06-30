@@ -32,8 +32,8 @@ spec:
         # 메모리 80%
         - alert: HighMemoryUsage
           expr: |
-            (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) > 0.8
-          for: 10m
+            (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) > 0.85
+          for: 15m
           labels:
             severity: warning
             category: infra
