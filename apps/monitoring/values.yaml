@@ -21,10 +21,10 @@ kube-prometheus-stack:
 
     resources:
       requests:
-        memory: 256Mi
+        memory: 128Mi
         cpu: 50m
       limits:
-        memory: 640Mi
+        memory: 300Mi
     
     # Loki datasource 자동 추가
     additionalDataSources:
@@ -42,8 +42,8 @@ kube-prometheus-stack:
       type: NodePort
       nodePort: 30090
     prometheusSpec:
-      retention: 15d
-      retentionSize: "40GB"
+      retention: 2d
+      retentionSize: "10GB"
       
       # PVC (k3s local-path)
       storageSpec:
@@ -63,10 +63,10 @@ kube-prometheus-stack:
       # 리소스 제한 (라즈베리파이 보호)
       resources:
         requests:
-          memory: 800Mi
-          cpu: 200m
+          memory: 400Mi
+          cpu: 100m
         limits:
-          memory: 1500Mi
+          memory: 800Mi
 
   # ────────────────────────────────────────
   # AlertManager 🆕
@@ -170,9 +170,9 @@ loki:
             period: 24h
     # 7일 보존
     limits_config:
-      retention_period: 168h
+      retention_period: 48h
       reject_old_samples: true
-      reject_old_samples_max_age: 168h
+      reject_old_samples_max_age: 48h
   
   singleBinary:
     replicas: 1
@@ -182,10 +182,10 @@ loki:
       storageClass: local-path
     resources:
       requests:
-        memory: 200Mi
-        cpu: 100m
+        memory: 100Mi
+        cpu: 50m
       limits:
-        memory: 500Mi
+        memory: 300Mi
   
   # 분산 모드용 컴포넌트 모두 비활성 (single-binary 라)
   read:
