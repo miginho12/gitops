@@ -73,6 +73,18 @@ resources:
     cpu: 50m
     memory: 128Mi
 
+# 영상 트랜스코딩 워커 (ARQ) — API 와 같은 이미지, command=arq
+worker:
+  enabled: true
+  replicaCount: 1
+  resources:
+    limits:
+      cpu: "2"
+      memory: 512Mi
+    requests:
+      cpu: 200m
+      memory: 256Mi
+
 serviceMonitor:
   enabled: true
 
