@@ -64,6 +64,9 @@ secretRefs:
   # MinIO 자격증명 (백엔드 presigned 발급용)
   - name: minio-credentials
     keys: [MINIO_ACCESS_KEY, MINIO_SECRET_KEY]
+  # 이메일 인증 SMTP (Gmail)
+  - name: clog-smtp-credentials
+    keys: [SMTP_USER, SMTP_PASSWORD]
 
 resources:
   limits:
