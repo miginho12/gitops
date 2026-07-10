@@ -1,5 +1,5 @@
 image:
-  tag: "sha-91cc620"
+  tag: "sha-46c9f95"
   pullPolicy: IfNotPresent
 
 # ⭐ Day 13 추가: Service 를 NodePort 로 변경
