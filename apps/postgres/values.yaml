@@ -59,3 +59,26 @@ securityContext:
   runAsUser: 999            # postgres user UID
   runAsGroup: 999
   runAsNonRoot: true
+
+# 백업 (pg_dump → gzip → MinIO)
+# ⚠️ postgres와 MinIO가 같은 물리 디스크(local-path)라 논리적 장애(잘못된
+# DELETE/마이그레이션)만 방어. 디스크 자체 장애 대비는 별도 오프사이트 반출 필요.
+backup:
+  enabled: true
+  schedule: "0 18 * * *"    # 매일 03:00 KST (UTC 18:00)
+  retentionDays: 7
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  minio:
+    endpoint: "minio:9000"
+    bucket: "clog-backups"
+    secretName: minio-credentials
+    accessKeyKey: root-user
+    secretKeyKey: root-password
+  resources:
+    limits:
+      cpu: 200m
+      memory: 256Mi
+    requests:
+      cpu: 50m
+      memory: 64Mi

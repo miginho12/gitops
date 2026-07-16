@@ -1,0 +1,86 @@
+{{- if .Values.backup.enabled }}
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: {{ include "postgres.fullname" . }}-backup
+  labels:
+    {{- include "postgres.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    app.kubernetes.io/component: backup
+spec:
+  schedule: {{ .Values.backup.schedule | quote }}
+  timeZone: "Etc/UTC"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: {{ .Values.backup.successfulJobsHistoryLimit | default 3 }}
+  failedJobsHistoryLimit: {{ .Values.backup.failedJobsHistoryLimit | default 3 }}
+  startingDeadlineSeconds: 300
+  jobTemplate:
+    spec:
+      backoffLimit: 2
+      activeDeadlineSeconds: 900
+      template:
+        metadata:
+          labels:
+            {{- include "postgres.selectorLabels" . | nindent 12 }}
+            app.kubernetes.io/component: backup
+        spec:
+          restartPolicy: OnFailure
+          volumes:
+            - name: dump
+              emptyDir: {}
+
+          # 1) pg_dump로 덤프 떠서 emptyDir에 압축 저장
+          initContainers:
+            - name: pg-dump
+              image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+              command:
+                - sh
+                - -c
+                - |
+                  set -eu
+                  FILE="/dump/{{ .Values.database.name }}-$(date -u +%Y%m%d-%H%M%S).sql.gz"
+                  pg_dump -h {{ include "postgres.fullname" . }} -U {{ .Values.database.user }} -d {{ .Values.database.name }} | gzip > "$FILE"
+                  echo "dumped $FILE ($(du -h "$FILE" | cut -f1))"
+              env:
+                - name: PGPASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      name: {{ .Values.secret.name }}
+                      key: {{ .Values.secret.keys.userPassword }}
+              volumeMounts:
+                - name: dump
+                  mountPath: /dump
+              resources:
+                {{- toYaml .Values.backup.resources | nindent 16 }}
+
+          # 2) mc로 MinIO에 업로드 + 리텐션 정리
+          containers:
+            - name: upload
+              image: minio/mc:latest
+              command:
+                - sh
+                - -c
+                - |
+                  set -eu
+                  mc alias set backup-target "http://{{ .Values.backup.minio.endpoint }}" "$MINIO_ACCESS_KEY" "$MINIO_SECRET_KEY"
+                  mc mb --ignore-existing "backup-target/{{ .Values.backup.minio.bucket }}"
+                  mc cp /dump/*.sql.gz "backup-target/{{ .Values.backup.minio.bucket }}/"
+                  mc rm --recursive --force "backup-target/{{ .Values.backup.minio.bucket }}/" --older-than {{ .Values.backup.retentionDays }}d
+              env:
+                - name: MINIO_ACCESS_KEY
+                  valueFrom:
+                    secretKeyRef:
+                      name: {{ .Values.backup.minio.secretName }}
+                      key: {{ .Values.backup.minio.accessKeyKey }}
+                - name: MINIO_SECRET_KEY
+                  valueFrom:
+                    secretKeyRef:
+                      name: {{ .Values.backup.minio.secretName }}
+                      key: {{ .Values.backup.minio.secretKeyKey }}
+              volumeMounts:
+                - name: dump
+                  mountPath: /dump
+                  readOnly: true
+              resources:
+                {{- toYaml .Values.backup.resources | nindent 16 }}
+{{- end }}
