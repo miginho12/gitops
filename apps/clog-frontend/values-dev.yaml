@@ -6,3 +6,8 @@ service:
   type: NodePort
   port: 80
   nodePort: 30081
+
+# 2026-07-16: nginx.conf가 envsubst 템플릿으로 바뀔 예정(백엔드 주소 하드코딩 제거).
+# 이 값은 새 이미지가 배포되기 전부터 미리 넣어둠 — 기존 이미지는 env를 안 읽으므로 무해.
+env:
+  CLOG_BACKEND_HOST: "clog-dev"
