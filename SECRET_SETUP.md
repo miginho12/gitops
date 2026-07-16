@@ -3,6 +3,14 @@
 > ⚠️ 이 파일은 **참고용**입니다. 절대 git에 실제 비밀번호를 커밋하지 마세요.
 > Secret 은 진호님이 라즈베리파이에서 직접 `kubectl create secret` 으로 생성합니다.
 
+> ✅ 2026-07-16부터 `postgres-credentials`는 Sealed Secrets로 전환됨.
+> 이제 `apps/postgres/templates/sealed-secret-postgres-credentials.yaml`(암호화된 값, git에 커밋됨)이
+> SSOT. 값을 바꾸려면 아래 수동 생성 대신:
+> `kubectl create secret generic postgres-credentials -n dev --from-literal=... --dry-run=client -o yaml \
+>   | kubeseal --controller-namespace sealed-secrets --controller-name sealed-secrets-controller --format yaml \
+>   > apps/postgres/templates/sealed-secret-postgres-credentials.yaml`
+> 아래 1~4단계는 이 시크릿을 처음 만들 당시 기록이라 더 이상 실행할 필요 없음(역사적 참고용).
+
 ## 변경 사항 (Bitnami → 커스텀 chart)
 
 - **이전**: `postgres-password`, `clog-password`, `replication-password` (3개)
