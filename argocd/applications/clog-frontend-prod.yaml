@@ -1,0 +1,28 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: clog-frontend-prod
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+
+  source:
+    repoURL: https://github.com/miginho12/gitops
+    targetRevision: main
+    path: apps/clog-frontend
+    helm:
+      releaseName: clog-frontend-prod
+      valueFiles:
+        - values.yaml
+        - values-prod.yaml
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: prod
+
+  # clog-prod와 마찬가지로 수동 sync (안정화 후 automated 블록 추가)
+  syncPolicy:
+    syncOptions:
+      - CreateNamespace=true
