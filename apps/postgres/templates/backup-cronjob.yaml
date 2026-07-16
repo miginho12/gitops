@@ -38,7 +38,7 @@ spec:
                 - -c
                 - |
                   set -eu
-                  FILE="/dump/{{ .Values.database.name }}-$(date -u +%Y%m%d-%H%M%S).sql.gz"
+                  FILE="/dump/{{ include "postgres.fullname" . }}-{{ .Values.database.name }}-$(date -u +%Y%m%d-%H%M%S).sql.gz"
                   pg_dump -h {{ include "postgres.fullname" . }} -U {{ .Values.database.user }} -d {{ .Values.database.name }} | gzip > "$FILE"
                   echo "dumped $FILE ($(du -h "$FILE" | cut -f1))"
               env:
