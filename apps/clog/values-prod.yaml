@@ -1,15 +1,71 @@
 # prod 환경 override
-# 현재는 dev만 배포. prod는 안정화 후 활성화 예정.
+# 2026-07-16: postgres-prod/redis-prod 프로비저닝 완료, DB 연결 설정 추가.
+# 수동 승격 원칙 — dev에서 검증된 sha 태그를 여기 그대로 반영 (재빌드 아님).
+# 서비스는 아직 NodePort 내부 전용. 공개 도메인(Tailscale Funnel) 전환은 별도 단계.
 
 replicaCount: 2
 
 image:
-  tag: ""  # 명시적 sha- 태그 사용 (latest 금지)
+  tag: "sha-c99b57b"  # dev에서 검증된 태그를 그대로 승격 (명시적 sha-, latest 금지)
   pullPolicy: IfNotPresent
+
+# 내부 전용 NodePort (dev의 30080/30081과 겹치지 않게 30082)
+service:
+  type: NodePort
+  port: 80
+  nodePort: 30082
 
 env:
   ENVIRONMENT: prod
   LOG_LEVEL: INFO
+
+  # DB
+  DB_HOST: postgres-prod.prod.svc.cluster.local
+  DB_PORT: "5432"
+  DB_NAME: clog_dev
+  DB_USER: clog
+  DB_POOL_SIZE: "5"
+  DB_POOL_MAX_OVERFLOW: "5"
+  DB_POOL_TIMEOUT: "30"
+  DB_ECHO: "false"
+
+  # JWT (prod 전용 키쌍 — dev와 공유하지 않음)
+  JWT_ACCESS_TOKEN_EXPIRE_MINUTES: "60"
+  JWT_REFRESH_TOKEN_EXPIRE_DAYS: "7"
+  JWT_ALGORITHM: "RS256"
+  JWT_ISSUER: "clog-backend"
+
+  # Redis
+  REDIS_HOST: redis-prod.prod.svc.cluster.local
+  REDIS_PORT: "6379"
+  REDIS_DB: "0"
+  REDIS_MAX_CONNECTIONS: "20"
+  REDIS_SOCKET_TIMEOUT: "5"
+  REDIS_CONNECT_TIMEOUT: "5"
+
+  # 카카오 OAuth (공개 도메인 전환 전까지는 실제로 안 탐)
+  KAKAO_REDIRECT_URI: "https://clog.tail099985.ts.net/api/auth/kakao/callback"
+  FRONTEND_URL: "https://clog.tail099985.ts.net"
+
+  # MinIO — dev와 공유 인스턴스, 버킷만 분리 (리소스 제약 하 트레이드오프)
+  MINIO_ENDPOINT: "minio.dev.svc.cluster.local:9000"
+  MINIO_BUCKET: "clog-media-prod"
+  MINIO_SECURE: "true"
+  MINIO_PUBLIC_ENDPOINT: "clog.tail099985.ts.net"
+
+secretRefs:
+  - name: clog-db-credentials
+    keys: [DB_PASSWORD]
+  - name: clog-jwt-keys
+    keys: [JWT_PRIVATE_KEY, JWT_PUBLIC_KEY]
+  - name: clog-redis-credentials
+    keys: [REDIS_PASSWORD]
+  - name: clog-kakao-credentials
+    keys: [KAKAO_CLIENT_ID, KAKAO_CLIENT_SECRET]
+  - name: minio-credentials
+    keys: [MINIO_ACCESS_KEY, MINIO_SECRET_KEY]
+  - name: clog-smtp-credentials
+    keys: [SMTP_USER, SMTP_PASSWORD]
 
 resources:
   limits:
@@ -25,3 +81,25 @@ autoscaling:
 # prod에서는 readOnlyRootFilesystem 강화
 securityContext:
   readOnlyRootFilesystem: true
+
+worker:
+  enabled: true
+  replicaCount: 1
+  resources:
+    limits:
+      cpu: "1"
+      memory: 384Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi
+
+serviceMonitor:
+  enabled: true
+
+mediaReconcile:
+  enabled: true
+  apply: true
+  schedule: "30 18 * * *"   # dev(18:00)와 겹치지 않게 30분 차이
+  timeZone: "Etc/UTC"
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
