@@ -1,0 +1,11 @@
+sealed-secrets:
+  # kubeseal CLI 기본값이 이 이름을 찾음
+  fullnameOverride: sealed-secrets-controller
+
+  resources:
+    limits:
+      cpu: 200m
+      memory: 128Mi
+    requests:
+      cpu: 50m
+      memory: 32Mi

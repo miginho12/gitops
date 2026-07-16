@@ -1,0 +1,11 @@
+apiVersion: v2
+name: sealed-secrets
+description: Sealed Secrets controller - Secret을 암호화해 git에 커밋 가능하게 함
+type: application
+version: 0.1.0
+appVersion: "0.38.4"
+
+dependencies:
+  - name: sealed-secrets
+    version: "2.19.1"
+    repository: https://bitnami.github.io/sealed-secrets
