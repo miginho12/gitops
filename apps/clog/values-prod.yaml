@@ -62,7 +62,8 @@ secretRefs:
     keys: [REDIS_PASSWORD]
   - name: clog-kakao-credentials
     keys: [KAKAO_CLIENT_ID, KAKAO_CLIENT_SECRET]
-  - name: minio-credentials
+  # root 대신 버킷 스코프 전용 사용자(clog-prod)
+  - name: minio-clog-credentials
     keys: [MINIO_ACCESS_KEY, MINIO_SECRET_KEY]
   - name: clog-smtp-credentials
     keys: [SMTP_USER, SMTP_PASSWORD]

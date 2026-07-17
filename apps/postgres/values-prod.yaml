@@ -7,3 +7,8 @@
 backup:
   minio:
     endpoint: "minio.dev.svc.cluster.local:9000"
+    # prod 전용 버킷 + 최소권한 사용자(clog-prod) — dev와 백업 파일 안 섞이게
+    bucket: "clog-backups-prod"
+    secretName: minio-clog-credentials
+    accessKeyKey: MINIO_ACCESS_KEY
+    secretKeyKey: MINIO_SECRET_KEY

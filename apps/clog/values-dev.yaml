@@ -61,8 +61,8 @@ secretRefs:
   # ⭐ Day 13: 카카오 OAuth 자격증명
   - name: clog-kakao-credentials
     keys: [KAKAO_CLIENT_ID, KAKAO_CLIENT_SECRET]
-  # MinIO 자격증명 (백엔드 presigned 발급용)
-  - name: minio-credentials
+  # MinIO 자격증명 (백엔드 presigned 발급용) — root 대신 버킷 스코프 전용 사용자(clog-dev)
+  - name: minio-clog-credentials
     keys: [MINIO_ACCESS_KEY, MINIO_SECRET_KEY]
   # 이메일 인증 SMTP (Gmail)
   - name: clog-smtp-credentials

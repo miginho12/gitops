@@ -72,9 +72,10 @@ backup:
   minio:
     endpoint: "minio:9000"
     bucket: "clog-backups"
-    secretName: minio-credentials
-    accessKeyKey: root-user
-    secretKeyKey: root-password
+    # 2026-07-17: root 계정 대신 버킷 스코프 전용 사용자(clog-dev)로 최소권한 전환
+    secretName: minio-clog-credentials
+    accessKeyKey: MINIO_ACCESS_KEY
+    secretKeyKey: MINIO_SECRET_KEY
   resources:
     limits:
       cpu: 200m
