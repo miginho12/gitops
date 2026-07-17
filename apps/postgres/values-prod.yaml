@@ -1,0 +1,9 @@
+# prod 환경 override
+# 2026-07-17: postgres-prod-backup Job이 계속 실패해 KubeJobFailed 알림 발생.
+# 원인 — backup.minio.endpoint(base: "minio:9000")가 짧은 이름이라 prod 네임스페이스에서는
+# minio.prod로 풀리는데 MinIO는 dev 네임스페이스에만 떠 있음. FQDN으로 dev의 MinIO를 가리키도록 수정.
+# (media 프록시가 minio.dev.svc.cluster.local을 쓰는 것과 같은 이유 — MinIO는 dev/prod 공유 인스턴스)
+
+backup:
+  minio:
+    endpoint: "minio.dev.svc.cluster.local:9000"

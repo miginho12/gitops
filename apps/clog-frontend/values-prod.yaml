@@ -1,7 +1,8 @@
 # prod 환경 override
 # 2026-07-16: 백엔드(clog-prod) 준비 완료 후 프론트 prod 배포.
 # 수동 승격 원칙 — dev에서 검증된 sha 태그를 그대로 반영 (재빌드 아님).
-# 서비스는 아직 NodePort 내부 전용. 공개 도메인(Tailscale Funnel) 전환은 별도 단계.
+# 2026-07-17: Tailscale Funnel(https://clog.tail099985.ts.net) 전환 완료 — 이 NodePort(30083)가 공개 대상.
+# dev(30081)는 Funnel에서 빠지고 tailnet 내부 전용으로 전환됨.
 
 image:
   tag: "sha-237a98e"  # dev에서 envsubst 템플릿 이미지 검증 완료(healthz ok, /api 프록시 200) 후 승격
