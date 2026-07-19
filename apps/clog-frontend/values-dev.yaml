@@ -1,5 +1,5 @@
 image:
-  tag: "sha-9a05e92"
+  tag: "sha-74895fc"
   pullPolicy: IfNotPresent
 
 service:
