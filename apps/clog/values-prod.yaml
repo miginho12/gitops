@@ -6,7 +6,7 @@
 replicaCount: 2
 
 image:
-  tag: "sha-c99b57b"  # dev에서 검증된 태그를 그대로 승격 (명시적 sha-, latest 금지)
+  tag: "sha-3fed05b"  # dev에서 검증된 태그를 그대로 승격 (명시적 sha-, latest 금지) — 비밀번호 찾기·이메일 중복확인·인증메일 리브랜딩 포함
   pullPolicy: IfNotPresent
 
 # 내부 전용 NodePort (dev의 30080/30081과 겹치지 않게 30082)
