@@ -13,6 +13,10 @@ env:
   ENVIRONMENT: dev
   LOG_LEVEL: DEBUG
 
+  # 2026-07-19: 프론트 리디자인 작업 중 로컬 vite dev 서버(다른 기기에서 미리보기)를
+  # 허용하기 위해 LAN/tailnet 오리진 추가. 라즈베리파이 고정 IP + tailscale IP.
+  CORS_ORIGINS: '["http://localhost:3000","https://clog.tail099985.ts.net","http://192.168.123.105:5173","http://100.96.195.103:5173"]'
+
   # DB
   DB_HOST: postgres.dev.svc.cluster.local
   DB_PORT: "5432"
