@@ -5,7 +5,7 @@
 # dev(30081)는 Funnel에서 빠지고 tailnet 내부 전용으로 전환됨.
 
 image:
-  tag: "sha-3567327"  # dev에서 소프트 미니멀×글래스 컬러 리디자인 검증 완료 후 승격
+  tag: "sha-bc196a4"  # dev에서 nginx 미디어 프록시 413 버그(prod 버킷명 prefix 매칭 실패) 수정 검증 완료 후 승격
   pullPolicy: IfNotPresent
 
 service:
