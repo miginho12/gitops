@@ -5,7 +5,7 @@
 # dev(30081)는 Funnel에서 빠지고 tailnet 내부 전용으로 전환됨.
 
 image:
-  tag: "sha-9a05e92"  # dev에서 피드 카드 메타(암장·날짜/시도횟수) 2줄 고정 UI 수정 검증 완료 후 승격
+  tag: "sha-74895fc"  # dev에서 화면전환 탭/드릴다운 구분·스크롤바 숨김·검색탭 스켈레톤 검증 완료 후 승격
   pullPolicy: IfNotPresent
 
 service:
