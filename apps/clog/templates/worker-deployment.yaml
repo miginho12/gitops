@@ -47,8 +47,20 @@ spec:
             - secretRef:
                 name: {{ .name }}
             {{- end }}
+          # readOnlyRootFilesystem(prod)에서도 ffmpeg 트랜스코딩용 스크래치 공간이
+          # 필요 — tempfile.TemporaryDirectory()가 /tmp에 쓰기 시도하는데 루트FS가
+          # 읽기전용이면 디렉터리 자체가 없어 FileNotFoundError로 즉시 크래시한다
+          # (2026-07-19 prod에서 영상 업로드 후 피드 미노출로 발견 — media_status가
+          # processing에 멈춘 채 트랜스코딩 실패 알림도 못 감).
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
           resources:
             {{- toYaml .Values.worker.resources | nindent 12 }}
+      volumes:
+        - name: tmp
+          emptyDir:
+            sizeLimit: 2Gi
       {{- with .Values.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
