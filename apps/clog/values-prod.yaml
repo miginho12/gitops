@@ -6,7 +6,7 @@
 replicaCount: 2
 
 image:
-  tag: "sha-559724e"  # dev에서 검증된 태그를 그대로 승격 (명시적 sha-, latest 금지) — 기록/댓글 수정 500 버그(updated_at 리프레시 누락) 수정 포함
+  tag: "sha-0ac2e4d"  # dev에서 검증된 태그를 그대로 승격 (명시적 sha-, latest 금지) — 미완료 영상 게시물 집계 제외 + 클라이머 브라우즈 API(QA #2/#6) 포함
   pullPolicy: IfNotPresent
 
 # 내부 전용 NodePort (dev의 30080/30081과 겹치지 않게 30082)
