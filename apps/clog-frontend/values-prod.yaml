@@ -5,7 +5,7 @@
 # dev(30081)는 Funnel에서 빠지고 tailnet 내부 전용으로 전환됨.
 
 image:
-  tag: "sha-29e7b02"  # dev에서 완등/도전 라벨 변경 + 암장 자동선택(QA #1/#3) 검증 완료 후 승격
+  tag: "sha-be4502d"  # dev에서 삭제된 게시물/댓글 알림·영상 미리보기·업로드 재시도(QA #1/#5/#7) 검증 완료 후 승격
   pullPolicy: IfNotPresent
 
 service:
