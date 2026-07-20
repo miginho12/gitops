@@ -86,13 +86,16 @@ securityContext:
 worker:
   enabled: true
   replicaCount: 1
+  # 2026-07-20: 384Mi에서 ffmpeg가 OOMKilled(dmesg 확인) — memory.oom.group이라
+  # ffmpeg뿐 아니라 arq 워커 프로세스까지 같이 죽어 트랜스코딩 작업이 미완료로
+  # 남았다(재시도해도 같은 한도면 또 죽음). 1Gi로 상향.
   resources:
     limits:
       cpu: "1"
-      memory: 384Mi
+      memory: 1Gi
     requests:
       cpu: 100m
-      memory: 128Mi
+      memory: 256Mi
 
 serviceMonitor:
   enabled: true
