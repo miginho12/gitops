@@ -6,7 +6,7 @@
 replicaCount: 2
 
 image:
-  tag: "sha-1d1fc0b"  # dev에서 검증된 태그를 그대로 승격 (명시적 sha-, latest 금지) — 실제 최고등급 표시 수정 + 암장별 난이도 보정치(difficulty_offset) 추가
+  tag: "sha-0d93e56"  # dev에서 검증된 태그를 그대로 승격 (명시적 sha-, latest 금지) — 보안 QA: 업로드 용량 제한 + rate limit 인증키 + 로그인 타이밍 사이드채널 수정
   pullPolicy: IfNotPresent
 
 # 내부 전용 NodePort (dev의 30080/30081과 겹치지 않게 30082)
