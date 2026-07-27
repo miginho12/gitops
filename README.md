@@ -107,6 +107,9 @@ ArgoCD Application 삭제 후에도 배포된 Deployment/Service가 클러스터
 **3. argocd-server CrashLoopBackOff — timezone 불일치**
 argocd-server Pod가 반복 재시작되는 현상. admin 비밀번호 변경 시 `passwordMtime` 필드에 `date +%Z` (KST abbreviation) 출력값을 넣었던 것이 원인. Go의 time.Parse는 RFC3339 표준만 인식하므로 "EST"가 5가지 타임존을 의미할 수 있는 abbreviation의 모호성 때문에 거부. `date -u +%FT%TZ` (UTC) 형식으로 변경 후 해결.
 
+**4. gitops push non-fast-forward 반복** (2026-07-27)
+GitHub Actions가 이미지 태그 bump 커밋을 자주 자동으로 올려서, 사람이 커밋하는 사이에 CI 커밋이 끼어들면 push가 거부되는 일이 잦았다. 매번 `git pull --rebase && git push`를 손으로 반복하는 대신 `scripts/safe-push.sh`로 자동 재시도(최대 5회)하도록 정리. 진짜 merge conflict가 나면(사람과 CI가 같은 줄을 건드린 경우) 무한정 재시도하지 않고 `git rebase --abort`로 깨끗이 되돌린 뒤 사람이 직접 해결하도록 안내한다 — 격리된 테스트 저장소로 정상 재시도 경로와 conflict-abort 경로 둘 다 검증.
+
 > **검증 방법론**: 의도적으로 존재하지 않는 이미지 태그(`nginx:intentional-fail`)를 배포해 Health Degraded 알림 트리거를 검증한 뒤, `git revert`로 복구하는 흐름을 실습했다. 장애를 능동적으로 주입해 모니터링 시스템을 검증하는 Chaos Engineering의 기본 사고방식을 적용.
 
 ---
