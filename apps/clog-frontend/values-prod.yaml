@@ -5,7 +5,7 @@
 # dev(30081)는 Funnel에서 빠지고 tailnet 내부 전용으로 전환됨.
 
 image:
-  tag: "sha-fdf525b"  # dev에서 검증된 태그를 그대로 승격 — eslint 에러 16개 정리(댓글 드래그 시트 ref-during-render 버그 수정 포함)
+  tag: "sha-0ccac8d"  # dev에서 검증된 태그를 그대로 승격 — npm audit 취약점 정리(brace-expansion/postcss) + eslint/npm audit CI 게이트 활성화 (런타임 변경 없음)
   pullPolicy: IfNotPresent
 
 service:
