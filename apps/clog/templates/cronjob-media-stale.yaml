@@ -1,0 +1,54 @@
+{{- if .Values.mediaStaleReconcile.enabled }}
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: {{ include "clog.fullname" . }}-media-stale-reconcile
+  labels:
+    {{- include "clog.labels" . | nindent 4 }}
+    app.kubernetes.io/component: media-stale-reconcile
+spec:
+  schedule: {{ .Values.mediaStaleReconcile.schedule | quote }}
+  timeZone: {{ .Values.mediaStaleReconcile.timeZone | default "Etc/UTC" | quote }}
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: {{ .Values.mediaStaleReconcile.successfulJobsHistoryLimit | default 3 }}
+  failedJobsHistoryLimit: {{ .Values.mediaStaleReconcile.failedJobsHistoryLimit | default 3 }}
+  startingDeadlineSeconds: 120
+  jobTemplate:
+    spec:
+      backoffLimit: 2
+      activeDeadlineSeconds: 180
+      template:
+        metadata:
+          labels:
+            {{- include "clog.selectorLabels" . | nindent 12 }}
+            app.kubernetes.io/component: media-stale-reconcile
+        spec:
+          restartPolicy: OnFailure
+          containers:
+            - name: media-stale-reconcile
+              image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+              imagePullPolicy: {{ .Values.image.pullPolicy }}
+              command:
+                - python
+                - -m
+                - app.scripts.media_stale_reconcile
+                {{- if .Values.mediaStaleReconcile.apply }}
+                - --apply
+                {{- end }}
+              envFrom:
+                {{- if .Values.configMap.enabled }}
+                - configMapRef:
+                    name: {{ include "clog.fullname" . }}
+                {{- end }}
+                {{- range .Values.secretRefs }}
+                - secretRef:
+                    name: {{ .name }}
+                {{- end }}
+              resources:
+                requests:
+                  cpu: 50m
+                  memory: 128Mi
+                limits:
+                  cpu: 200m
+                  memory: 256Mi
+{{- end }}

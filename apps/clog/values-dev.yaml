@@ -105,3 +105,13 @@ mediaReconcile:
   timeZone: "Etc/UTC"
   successfulJobsHistoryLimit: 3
   failedJobsHistoryLimit: 3
+
+# 워커 OOM 등으로 멈춘 media_status=processing 건 정리 CronJob
+mediaStaleReconcile:
+  enabled: true
+  # 처음엔 dry-run(false)로 검증 → 확인 후 true 로 전환
+  apply: false
+  schedule: "*/15 * * * *"
+  timeZone: "Etc/UTC"
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
