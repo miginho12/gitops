@@ -43,15 +43,15 @@ env:
   REDIS_SOCKET_TIMEOUT: "5"
   REDIS_CONNECT_TIMEOUT: "5"
 
-  # 카카오 OAuth (공개 도메인 전환 전까지는 실제로 안 탐)
-  KAKAO_REDIRECT_URI: "https://clog.tail099985.ts.net/api/auth/kakao/callback"
-  FRONTEND_URL: "https://clog.tail099985.ts.net"
+  # 카카오 OAuth (2026-07-30: climb-log.com 공개 도메인 전환 완료)
+  KAKAO_REDIRECT_URI: "https://climb-log.com/api/auth/kakao/callback"
+  FRONTEND_URL: "https://climb-log.com"
 
   # MinIO — dev와 공유 인스턴스, 버킷만 분리 (리소스 제약 하 트레이드오프)
   MINIO_ENDPOINT: "minio.dev.svc.cluster.local:9000"
   MINIO_BUCKET: "clog-media-prod"
   MINIO_SECURE: "true"
-  MINIO_PUBLIC_ENDPOINT: "clog.tail099985.ts.net"
+  MINIO_PUBLIC_ENDPOINT: "climb-log.com"
 
 secretRefs:
   - name: clog-db-credentials
