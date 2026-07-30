@@ -6,7 +6,7 @@
 replicaCount: 2
 
 image:
-  tag: "sha-3a5ca1a"  # dev에서 검증된 태그를 그대로 승격 — 카카오 프로필 이미지 URL https 강제 전환 (Android WebView mixed content 차단 대응)
+  tag: "sha-57e34f8"  # dev에서 검증된 태그를 그대로 승격 — 영상 게시물 정지 썸네일(thumbnail_url) 서버 생성 도입 (Android WebView video 태그 렌더링 문제 근본 우회)
   pullPolicy: IfNotPresent
 
 # 내부 전용 NodePort (dev의 30080/30081과 겹치지 않게 30082)
