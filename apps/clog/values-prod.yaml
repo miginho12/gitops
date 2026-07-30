@@ -6,7 +6,7 @@
 replicaCount: 2
 
 image:
-  tag: "sha-c9ea407"  # dev에서 검증된 태그를 그대로 승격 — CORS_ORIGINS에 Capacitor 모바일 앱 origin 추가
+  tag: "sha-3a5ca1a"  # dev에서 검증된 태그를 그대로 승격 — 카카오 프로필 이미지 URL https 강제 전환 (Android WebView mixed content 차단 대응)
   pullPolicy: IfNotPresent
 
 # 내부 전용 NodePort (dev의 30080/30081과 겹치지 않게 30082)
