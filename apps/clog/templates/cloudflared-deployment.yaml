@@ -1,0 +1,58 @@
+{{- if eq .Release.Name "clog-prod" }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cloudflared
+  namespace: prod
+  labels:
+    app.kubernetes.io/name: cloudflared
+    app.kubernetes.io/component: tunnel
+spec:
+  # cloudflared 는 아웃바운드 전용 연결만 만들기 때문에 Service/Ingress 불필요.
+  # 같은 토큰으로 replica 2개를 띄우면 Cloudflare 가 자동으로 로드밸런싱 +
+  # 하나가 죽어도 나머지가 트래픽을 받는 HA 구성이 된다(공식 권장 패턴).
+  replicas: 2
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: cloudflared
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: cloudflared
+    spec:
+      securityContext:
+        runAsNonRoot: true
+      containers:
+        - name: cloudflared
+          image: cloudflare/cloudflared:2026.7.3
+          args:
+            - tunnel
+            - --no-autoupdate
+            - --metrics
+            - 0.0.0.0:2000
+            - run
+          env:
+            - name: TUNNEL_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: cloudflared-credentials
+                  key: TUNNEL_TOKEN
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+          resources:
+            requests:
+              cpu: 25m
+              memory: 32Mi
+            limits:
+              cpu: 100m
+              memory: 128Mi
+          livenessProbe:
+            httpGet:
+              path: /ready
+              port: 2000
+            initialDelaySeconds: 10
+            periodSeconds: 30
+{{- end }}
