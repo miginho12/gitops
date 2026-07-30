@@ -6,7 +6,7 @@
 replicaCount: 2
 
 image:
-  tag: "sha-2fc50a8"  # dev에서 검증된 태그를 그대로 승격 (명시적 sha-, latest 금지) — stale 미디어 reconcile, mypy 128개 에러 정리, pip-audit CI 게이트, 영상 길이(60초) 서버측 검증
+  tag: "sha-da4bec8"  # dev에서 검증된 태그를 그대로 승격 — CORS_ORIGINS에 운영 도메인 climb-log.com 추가
   pullPolicy: IfNotPresent
 
 # 내부 전용 NodePort (dev의 30080/30081과 겹치지 않게 30082)
