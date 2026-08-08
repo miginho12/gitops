@@ -5,7 +5,7 @@
 # dev(30081)는 Funnel에서 빠지고 tailnet 내부 전용으로 전환됨.
 
 image:
-  tag: "sha-0ccac8d"  # dev에서 검증된 태그를 그대로 승격 — npm audit 취약점 정리(brace-expansion/postcss) + eslint/npm audit CI 게이트 활성화 (런타임 변경 없음)
+  tag: "sha-ab2fae2"  # dev에서 검증된 태그를 그대로 승격 — Capacitor 모바일 셋업, 카카오 로그인 리다이렉트/영상 썸네일 수정, 그레이드 환산 브랜드 대표만 노출 + 관리자 암장 개명 UI, npm audit 취약점 패치
   pullPolicy: IfNotPresent
 
 service:
