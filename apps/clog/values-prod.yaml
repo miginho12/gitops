@@ -1,7 +1,9 @@
 # prod 환경 override
 # 2026-07-16: postgres-prod/redis-prod 프로비저닝 완료, DB 연결 설정 추가.
 # 수동 승격 원칙 — dev에서 검증된 sha 태그를 여기 그대로 반영 (재빌드 아님).
-# 서비스는 아직 NodePort 내부 전용. 공개 도메인(Tailscale Funnel) 전환은 별도 단계.
+# 2026-07-30: 공개 도메인이 climb-log.com(Cloudflare Tunnel)으로 전환 완료
+# (아래 KAKAO_REDIRECT_URI/FRONTEND_URL/MINIO_PUBLIC_ENDPOINT 참고). NodePort는
+# 그 뒤단 내부 전용으로 유지.
 
 replicaCount: 2
 

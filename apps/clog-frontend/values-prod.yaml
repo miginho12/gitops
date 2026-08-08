@@ -1,8 +1,10 @@
 # prod 환경 override
 # 2026-07-16: 백엔드(clog-prod) 준비 완료 후 프론트 prod 배포.
 # 수동 승격 원칙 — dev에서 검증된 sha 태그를 그대로 반영 (재빌드 아님).
-# 2026-07-17: Tailscale Funnel(https://clog.tail099985.ts.net) 전환 완료 — 이 NodePort(30083)가 공개 대상.
+# 2026-07-17: Tailscale Funnel 전환 완료 — 이 NodePort(30083)가 공개 대상.
 # dev(30081)는 Funnel에서 빠지고 tailnet 내부 전용으로 전환됨.
+# 2026-07-30: 공개 도메인이 climb-log.com(Cloudflare Tunnel)으로 전환됨 —
+# NodePort(30083) 자체는 그대로, 그 앞단 공개 경로만 바뀜.
 
 image:
   tag: "sha-ab2fae2"  # dev에서 검증된 태그를 그대로 승격 — Capacitor 모바일 셋업, 카카오 로그인 리다이렉트/영상 썸네일 수정, 그레이드 환산 브랜드 대표만 노출 + 관리자 암장 개명 UI, npm audit 취약점 패치
