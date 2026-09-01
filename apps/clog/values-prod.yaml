@@ -8,7 +8,7 @@
 replicaCount: 2
 
 image:
-  tag: "sha-42afc93"  # dev에서 검증된 태그를 그대로 승격 — 썸네일 JFIF 헤더 수정, 암장 간 난이도 환산 브랜드 대표만 노출 + 관리자 암장 개명, cryptography 고위험 취약점 3건 패치
+  tag: "sha-36943ca"  # dev에서 검증된 태그를 그대로 승격 — prod에서 /docs,/redoc,/openapi.json 비공개 처리, pip 26.2.1 취약점(PYSEC-2026-3721) 패치
   pullPolicy: IfNotPresent
 
 # 내부 전용 NodePort (dev의 30080/30081과 겹치지 않게 30082)
