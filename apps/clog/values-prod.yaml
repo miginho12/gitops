@@ -8,7 +8,7 @@
 replicaCount: 2
 
 image:
-  tag: "sha-36943ca"  # dev에서 검증된 태그를 그대로 승격 — prod에서 /docs,/redoc,/openapi.json 비공개 처리, pip 26.2.1 취약점(PYSEC-2026-3721) 패치
+  tag: "sha-f3b8be8"  # dev에서 검증된 태그를 그대로 승격 — media-reconcile이 thumbnail_url 놓치던 버그 수정
   pullPolicy: IfNotPresent
 
 # 내부 전용 NodePort (dev의 30080/30081과 겹치지 않게 30082)
