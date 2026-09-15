@@ -56,7 +56,7 @@ spec:
           # 2) mc로 MinIO에 업로드 + 리텐션 정리
           containers:
             - name: upload
-              image: minio/mc:latest
+              image: "{{ .Values.backup.image.repository }}:{{ .Values.backup.image.tag }}"
               command:
                 - sh
                 - -c

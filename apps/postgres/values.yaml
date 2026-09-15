@@ -69,6 +69,12 @@ backup:
   retentionDays: 7
   successfulJobsHistoryLimit: 3
   failedJobsHistoryLimit: 3
+  # 2026-09-15: Docker Hub의 minio/mc:latest pull이 "insufficient_scope"로
+  # 거부되면서 dev/prod 백업 job이 전부 ImagePullBackOff -> DeadlineExceeded로
+  # 실패 (KubeJobFailed). quay.io의 MinIO 공식 미러로 전환.
+  image:
+    repository: quay.io/minio/mc
+    tag: latest
   minio:
     endpoint: "minio:9000"
     bucket: "clog-backups"
