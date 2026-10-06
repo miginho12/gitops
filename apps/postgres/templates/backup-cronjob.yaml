@@ -53,30 +53,41 @@ spec:
               resources:
                 {{- toYaml .Values.backup.resources | nindent 16 }}
 
-          # 2) mc로 MinIO에 업로드 + 리텐션 정리
+          # 2) rclone으로 MinIO에 업로드 + 리텐션 정리
           containers:
             - name: upload
               image: "{{ .Values.backup.image.repository }}:{{ .Values.backup.image.tag }}"
+              imagePullPolicy: {{ .Values.backup.image.pullPolicy | default "IfNotPresent" }}
               command:
                 - sh
                 - -c
                 - |
                   set -eu
-                  mc alias set backup-target "http://{{ .Values.backup.minio.endpoint }}" "$MINIO_ACCESS_KEY" "$MINIO_SECRET_KEY"
-                  mc mb --ignore-existing "backup-target/{{ .Values.backup.minio.bucket }}"
-                  mc cp /dump/*.sql.gz "backup-target/{{ .Values.backup.minio.bucket }}/"
-                  mc rm --recursive --force "backup-target/{{ .Values.backup.minio.bucket }}/" --older-than {{ .Values.backup.retentionDays }}d
+                  rclone mkdir "backup:{{ .Values.backup.minio.bucket }}"
+                  rclone copy /dump/ "backup:{{ .Values.backup.minio.bucket }}/" --include "*.sql.gz"
+                  rclone delete "backup:{{ .Values.backup.minio.bucket }}/" --min-age {{ .Values.backup.retentionDays }}d
+                  rclone ls "backup:{{ .Values.backup.minio.bucket }}/"
               env:
-                - name: MINIO_ACCESS_KEY
+                # rclone remote "backup"을 환경변수로 정의 (설정 파일 불필요)
+                - name: RCLONE_CONFIG_BACKUP_TYPE
+                  value: s3
+                - name: RCLONE_CONFIG_BACKUP_PROVIDER
+                  value: Minio
+                - name: RCLONE_CONFIG_BACKUP_ENDPOINT
+                  value: "http://{{ .Values.backup.minio.endpoint }}"
+                - name: RCLONE_CONFIG_BACKUP_ACCESS_KEY_ID
                   valueFrom:
                     secretKeyRef:
                       name: {{ .Values.backup.minio.secretName }}
                       key: {{ .Values.backup.minio.accessKeyKey }}
-                - name: MINIO_SECRET_KEY
+                - name: RCLONE_CONFIG_BACKUP_SECRET_ACCESS_KEY
                   valueFrom:
                     secretKeyRef:
                       name: {{ .Values.backup.minio.secretName }}
                       key: {{ .Values.backup.minio.secretKeyKey }}
+                # 이미지 기본 RCLONE_CONFIG 파일이 없어 매 명령마다 NOTICE 출력 → 메모리 설정만 사용
+                - name: RCLONE_CONFIG
+                  value: /dev/null
               volumeMounts:
                 - name: dump
                   mountPath: /dump

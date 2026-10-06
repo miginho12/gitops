@@ -72,9 +72,13 @@ backup:
   # 2026-09-15: Docker Hub의 minio/mc:latest pull이 "insufficient_scope"로
   # 거부되면서 dev/prod 백업 job이 전부 ImagePullBackOff -> DeadlineExceeded로
   # 실패 (KubeJobFailed). quay.io의 MinIO 공식 미러로 전환.
+  # 2026-10-06: quay.io/minio/mc도 익명 pull이 401로 막혀 9/24부터 같은 증상 재발.
+  # MinIO 배포 정책에 의존하지 않도록 S3 호환 클라이언트 rclone(공식 이미지)으로 교체,
+  # latest 대신 버전 고정 + IfNotPresent로 매 실행마다 레지스트리를 조회하지 않게 함.
   image:
-    repository: quay.io/minio/mc
-    tag: latest
+    repository: rclone/rclone
+    tag: "1.71.1"
+    pullPolicy: IfNotPresent
   minio:
     endpoint: "minio:9000"
     bucket: "clog-backups"
