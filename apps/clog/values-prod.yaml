@@ -8,7 +8,7 @@
 replicaCount: 2
 
 image:
-  tag: "sha-5021f1b"  # dev에서 검증된 태그를 그대로 승격 — 영상 분할(multipart) 업로드 API + 업로드 상한 100MB→500MB (dev E2E: 4K HEVC 173MB 들찍 177s/512MB, 192MB 일반 132s)
+  tag: "sha-3b3af2d"  # dev에서 검증된 태그를 그대로 승격 — 트랜스코딩 제한 시간 600s→900s (prod 실측 들찍 0.176s/프레임, 4K60 60s ≈630s 대비) + 분할 업로드·500MB 상한
   pullPolicy: IfNotPresent
 
 # 내부 전용 NodePort (dev의 30080/30081과 겹치지 않게 30082)
