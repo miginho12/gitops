@@ -91,12 +91,16 @@ worker:
   # 2026-07-20: 384Mi에서 ffmpeg가 OOMKilled(dmesg 확인) — memory.oom.group이라
   # ffmpeg뿐 아니라 arq 워커 프로세스까지 같이 죽어 트랜스코딩 작업이 미완료로
   # 남았다(재시도해도 같은 한도면 또 죽음). 1Gi로 상향.
+  # 2026-10-13: 들찍(팔로우캠) 렌더링 추가로 CPU 1 → 3, request 100m → 500m.
+  # prod 가 dev(cpu 2 / 200m)보다 낮던 역전 해소 + 경합 시 dev 워커보다 CPU 몫 우선.
+  # 실측(60s 1080p HEVC, 릴리스 이미지): 1코어 162s / 2코어 107s / 3코어 90s, 메모리 ~250MB.
+  # 4코어는 검출(디코딩)이 거의 단일 스레드라 이득 작고 API·시스템 몫만 줄어 3 이 상한.
   resources:
     limits:
-      cpu: "1"
+      cpu: "3"
       memory: 1Gi
     requests:
-      cpu: 100m
+      cpu: 500m
       memory: 256Mi
 
 serviceMonitor:
