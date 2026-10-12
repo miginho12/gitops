@@ -7,7 +7,7 @@
 # NodePort(30083) 자체는 그대로, 그 앞단 공개 경로만 바뀜.
 
 image:
-  tag: "sha-ce3fb5e"  # dev에서 검증된 태그를 그대로 승격 — index.html no-cache (배포 후 옛 화면 노출 수정) + 들찍 UI
+  tag: "sha-7a01481"  # dev에서 검증된 태그를 그대로 승격 — 큰 영상 분할(multipart) 업로드 + 이어 올리기 + 500MB 사전 안내
   pullPolicy: IfNotPresent
 
 service:
