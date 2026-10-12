@@ -8,7 +8,7 @@
 replicaCount: 2
 
 image:
-  tag: "sha-b23a68d"  # dev에서 검증된 태그를 그대로 승격 — 들찍(팔로우캠) 업로드 모드·렌더링(피드 4:5 구도) + pyjwt/urllib3/anyio 취약점 패치
+  tag: "sha-5021f1b"  # dev에서 검증된 태그를 그대로 승격 — 영상 분할(multipart) 업로드 API + 업로드 상한 100MB→500MB (dev E2E: 4K HEVC 173MB 들찍 177s/512MB, 192MB 일반 132s)
   pullPolicy: IfNotPresent
 
 # 내부 전용 NodePort (dev의 30080/30081과 겹치지 않게 30082)
