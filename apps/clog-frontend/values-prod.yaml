@@ -7,7 +7,7 @@
 # NodePort(30083) 자체는 그대로, 그 앞단 공개 경로만 바뀜.
 
 image:
-  tag: "sha-ab2fae2"  # dev에서 검증된 태그를 그대로 승격 — Capacitor 모바일 셋업, 카카오 로그인 리다이렉트/영상 썸네일 수정, 그레이드 환산 브랜드 대표만 노출 + 관리자 암장 개명 UI, npm audit 취약점 패치
+  tag: "sha-5eeb7d6"  # dev에서 검증된 태그를 그대로 승격 — 들찍 모드 토글 + 따라갈 사람 탭 선택 UI + Capacitor 8.4.3/빌드도구 취약점 패치
   pullPolicy: IfNotPresent
 
 service:

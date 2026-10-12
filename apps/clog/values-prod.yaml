@@ -8,7 +8,7 @@
 replicaCount: 2
 
 image:
-  tag: "sha-f3b8be8"  # dev에서 검증된 태그를 그대로 승격 — media-reconcile이 thumbnail_url 놓치던 버그 수정
+  tag: "sha-b23a68d"  # dev에서 검증된 태그를 그대로 승격 — 들찍(팔로우캠) 업로드 모드·렌더링(피드 4:5 구도) + pyjwt/urllib3/anyio 취약점 패치
   pullPolicy: IfNotPresent
 
 # 내부 전용 NodePort (dev의 30080/30081과 겹치지 않게 30082)
