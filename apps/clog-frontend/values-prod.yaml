@@ -7,7 +7,7 @@
 # NodePort(30083) 자체는 그대로, 그 앞단 공개 경로만 바뀜.
 
 image:
-  tag: "sha-5eeb7d6"  # dev에서 검증된 태그를 그대로 승격 — 들찍 모드 토글 + 따라갈 사람 탭 선택 UI + Capacitor 8.4.3/빌드도구 취약점 패치
+  tag: "sha-ce3fb5e"  # dev에서 검증된 태그를 그대로 승격 — index.html no-cache (배포 후 옛 화면 노출 수정) + 들찍 UI
   pullPolicy: IfNotPresent
 
 service:
