@@ -7,7 +7,7 @@
 # NodePort(30083) 자체는 그대로, 그 앞단 공개 경로만 바뀜.
 
 image:
-  tag: "sha-7a01481"  # dev에서 검증된 태그를 그대로 승격 — 큰 영상 분할(multipart) 업로드 + 이어 올리기 + 500MB 사전 안내
+  tag: "sha-eb8c2ac"  # dev에서 검증된 태그를 그대로 승격 — 여러 기록 한 번에 올리기(/feed/batch) + 업로드 대기열(순차·실패분 재시도) + 카드별 들찍 대상 지정
   pullPolicy: IfNotPresent
 
 service:
