@@ -7,7 +7,7 @@
 # NodePort(30083) 자체는 그대로, 그 앞단 공개 경로만 바뀜.
 
 image:
-  tag: "sha-eb8c2ac"  # dev에서 검증된 태그를 그대로 승격 — 여러 기록 한 번에 올리기(/feed/batch) + 업로드 대기열(순차·실패분 재시도) + 카드별 들찍 대상 지정
+  tag: "sha-620f073"  # dev에서 검증된 태그를 그대로 승격 — 제출 직후 재진입·뒤로가기 시 이전 작성 화면이 되살아나 중복 게시되던 문제 수정
   pullPolicy: IfNotPresent
 
 service:
