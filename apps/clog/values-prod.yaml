@@ -8,7 +8,7 @@
 replicaCount: 2
 
 image:
-  tag: "sha-3b3af2d"  # dev에서 검증된 태그를 그대로 승격 — 트랜스코딩 제한 시간 600s→900s (prod 실측 들찍 0.176s/프레임, 4K60 60s ≈630s 대비) + 분할 업로드·500MB 상한
+  tag: "sha-44b9fec"  # dev에서 검증된 태그를 그대로 승격 — 종합점수 하루 점수 평균(KST·암장 보정치 반영) + 활동 잔디 API + 암장 변경 이력·동기화
   pullPolicy: IfNotPresent
 
 # 내부 전용 NodePort (dev의 30080/30081과 겹치지 않게 30082)
