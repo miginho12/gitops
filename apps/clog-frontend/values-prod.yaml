@@ -7,7 +7,7 @@
 # NodePort(30083) 자체는 그대로, 그 앞단 공개 경로만 바뀜.
 
 image:
-  tag: "sha-a83fcc5"  # dev에서 검증된 태그를 그대로 승격 — 종합점수 하루 평균 UI(게이지·환산 최고/평소) + 꾸준함 잔디 + 관리자 변경 사유·이력
+  tag: "sha-6c4051a"  # dev에서 검증된 태그를 그대로 승격 — 영상은 크기와 상관없이 분할 업로드 (폰+와이파이에서 Cloudflare 경유 단일 PUT 이 35~40초에 끊기던 문제)
   pullPolicy: IfNotPresent
 
 service:
