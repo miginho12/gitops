@@ -7,7 +7,7 @@
 # NodePort(30083) 자체는 그대로, 그 앞단 공개 경로만 바뀜.
 
 image:
-  tag: "sha-92955d9"  # dev에서 검증된 태그를 그대로 승격 — 기준 암장 바꾸기(이 기기 저장) + 암장별 내 수준(실제/추정) + 클라이밍 기록
+  tag: "sha-2dccd91"  # dev에서 검증된 태그를 그대로 승격 — 첫 페이지 밖 게시물도 ?start= 로 이동 + 프로필 게시물 50개 제한 해제
   pullPolicy: IfNotPresent
 
 service:
