@@ -7,7 +7,7 @@
 # NodePort(30083) 자체는 그대로, 그 앞단 공개 경로만 바뀜.
 
 image:
-  tag: "sha-6c4051a"  # dev에서 검증된 태그를 그대로 승격 — 영상은 크기와 상관없이 분할 업로드 (폰+와이파이에서 Cloudflare 경유 단일 PUT 이 35~40초에 끊기던 문제)
+  tag: "sha-92955d9"  # dev에서 검증된 태그를 그대로 승격 — 기준 암장 바꾸기(이 기기 저장) + 암장별 내 수준(실제/추정) + 클라이밍 기록
   pullPolicy: IfNotPresent
 
 service:
