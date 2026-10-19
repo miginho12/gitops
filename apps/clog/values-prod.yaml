@@ -117,8 +117,8 @@ mediaReconcile:
 # 워커 OOM 등으로 멈춘 media_status=processing 건 정리 CronJob
 mediaStaleReconcile:
   enabled: true
-  # dev 에서 dry-run 로그로 오탐 여부 확인 후 true 로 전환
-  apply: false
+  # 2026-07-27~10-19 dry-run 운영: Loki 28일치 stale 감지 0건 + dev apply 첫 실행 정상(10-19) → apply 전환
+  apply: true
   schedule: "*/15 * * * *"
   timeZone: "Etc/UTC"
   successfulJobsHistoryLimit: 3
