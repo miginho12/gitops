@@ -8,7 +8,7 @@
 replicaCount: 2
 
 image:
-  tag: "sha-b342e63"  # dev에서 검증된 태그를 그대로 승격 — 암장별 내 수준 API(GET /me/grade/gyms: 가 본 암장=실제, 안 가 본 곳=추정, 기본 기준 암장=최근 90일 최다)
+  tag: "sha-34c3ff9"  # dev 검증 태그 승격 — 피드 정렬 부분 인덱스(ADR-073, 마이그레이션 8e9240acd321 별도 적용) + reconcile 미완료 원본 보존·24h 가드
   pullPolicy: IfNotPresent
 
 # 내부 전용 NodePort (dev의 30080/30081과 겹치지 않게 30082)
