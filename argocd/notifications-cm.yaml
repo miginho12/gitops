@@ -48,6 +48,8 @@ data:
   # ─────────────────────────────────────────────
   trigger.on-deployed: |
     - description: Application is synced and healthy
+      # sync 리비전당 1회만 발송 — 노드 재부팅 등으로 Healthy 가 재전이돼도 재발송 안 함
+      oncePer: app.status.operationState?.syncResult?.revision
       send:
       - app-deployed
       when: app.status.operationState.phase in ['Succeeded'] and app.status.health.status == 'Healthy'
