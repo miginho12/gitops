@@ -24,7 +24,8 @@ spec:
         runAsNonRoot: true
       containers:
         - name: cloudflared
-          image: cloudflare/cloudflared:2026.7.3
+          # 2026.10.2 미만은 취약한 eMudhra(emSign) 중간 인증서를 신뢰함 → 2026.10.3 이상 유지.
+          image: cloudflare/cloudflared:2026.10.3
           args:
             - tunnel
             - --no-autoupdate
@@ -55,4 +56,12 @@ spec:
               port: 2000
             initialDelaySeconds: 10
             periodSeconds: 30
+          # /ready 는 Cloudflare 엣지와 연결된 뒤에만 200 → 롤링 업데이트 시
+          # 새 Pod 가 실제로 터널에 붙은 후에 기존 Pod 가 내려가도록 보장.
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: 2000
+            initialDelaySeconds: 5
+            periodSeconds: 5
 {{- end }}
