@@ -116,6 +116,31 @@ spec:
             summary: "clog-backend rate limit 발동 폭증"
             description: "5분간 429 응답 폭증 - DDoS 의심 또는 정상 트래픽 폭증"
 
+        # 처리되지 않은 예외 1건이라도 → 알림. 에러율 룰(>=3건)이 놓치는 단발성 버그용.
+        # 도메인 예외는 exception_handlers 가 4xx 로 바꾸고 catch-all 핸들러가 없어서,
+        # 이 카운터는 "예상 못 한 예외"만 센다 → 1건 알림이어도 시끄럽지 않다.
+        # 라벨 붙은 카운터는 첫 발생 때 값 1로 생겨서 increase() 가 그 1건을 못 센다
+        # (= 처음 생긴 버그를 놓침). 그래서 10분 전엔 없던 새 시리즈도 or 로 잡는다.
+        # 한계: Prometheus 가 10분 넘게 내려갔다 오면 기존 시리즈가 새것처럼 보여 1회 오탐 가능.
+        - alert: ClogUnhandledException
+          expr: |
+            sum by (namespace, path_template, exception_type) (
+              increase(starlette_exceptions_total{app="clog-backend"}[10m])
+            ) > 0
+            or
+            sum by (namespace, path_template, exception_type) (
+              starlette_exceptions_total{app="clog-backend"}
+              unless
+              starlette_exceptions_total{app="clog-backend"} offset 10m
+            )
+          for: 0m
+          labels:
+            severity: warning
+            category: service
+          annotations:
+            summary: "clog-backend 처리되지 않은 예외 - {{`{{ $labels.namespace }}`}} {{`{{ $labels.path_template }}`}}"
+            description: "{{`{{ $labels.exception_type }}`}} 발생(최근 10분). Loki 에서 {namespace=\"{{`{{ $labels.namespace }}`}}\"} |= \"Traceback\" 로 스택트레이스 확인."
+
         # 워커 컨테이너가 memcg OOM 으로 커널에 의해 강제 종료됨.
         # last_terminated_reason 은 다음 종료 전까지 안 꺼지는 게이지라,
         # 최근 재시작(increase>0)과 and 로 묶어 15분 지나면 자동 resolve 되게 한다.
