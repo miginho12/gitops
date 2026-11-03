@@ -35,7 +35,11 @@ kube-prometheus-stack:
         editable: false
 
   # ────────────────────────────────────────
-  # Prometheus (PVC + 15일 retention)
+  # Prometheus (PVC + 7일 retention, 상한 10GB)
+  # 30일로 늘리지 않는 이유(2026-11-03 확인): 7일치 TSDB 약 4.1GB(하루 ~0.58GB)라
+  # 디스크는 충분하지만, 메모리가 평소 790~825Mi·최대 약 930Mi로 이미 limit 1000Mi 근처.
+  # 보존이 길어지면 compaction·긴 구간 조회 때 OOM 위험 → limit 을 올리면 노드 메모리
+  # 압박(10/13 노드 NotReady 전례). 장기 가용성은 클러스터 밖 업타임 모니터로 본다.
   # ────────────────────────────────────────
   prometheus:
     service:
@@ -168,7 +172,8 @@ loki:
           index:
             prefix: loki_index_
             period: 24h
-    # 7일 보존
+    # 48h 로 적어 뒀지만 compactor retention_enabled 가 없어 실제로는 삭제되지 않음
+    # (2026-11-03 기준 3.1GB, 35일 전 로그 조회됨). 적용하려면 compactor 설정 필요.
     limits_config:
       retention_period: 48h
       reject_old_samples: true
