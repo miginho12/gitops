@@ -67,14 +67,20 @@ spec:
     - name: clog-service
       interval: 30s
       rules:
-        # HTTP 5xx 에러율 > 5%
+        # HTTP 5xx 에러율 > 5% (5분간 5xx 3건 이상일 때만)
+        # starlette_prometheus 는 status_code 를 starlette_responses_total 에만 붙인다
+        # (requests_total 엔 없음 → 예전 식은 항상 빈 결과라 한 번도 발화 불가였음).
+        # /metrics·헬스체크가 요청의 대부분이라 분모에서 빼야 실제 API 에러율이 된다.
+        # 저트래픽이라 비율만 보면 500 한 번에도 울려서 최소 건수(>=3)를 함께 건다.
         - alert: ClogHighErrorRate
           expr: |
             (
-              sum(rate(starlette_requests_total{app="clog-backend",status_code=~"5.."}[5m]))
+              sum by (namespace) (rate(starlette_responses_total{app="clog-backend",path_template!~"/metrics|/health/.*",status_code=~"5.."}[5m]))
               /
-              sum(rate(starlette_requests_total{app="clog-backend"}[5m]))
+              sum by (namespace) (rate(starlette_responses_total{app="clog-backend",path_template!~"/metrics|/health/.*"}[5m]))
             ) > 0.05
+            and
+            sum by (namespace) (increase(starlette_responses_total{app="clog-backend",path_template!~"/metrics|/health/.*",status_code=~"5.."}[5m])) >= 3
           for: 5m
           labels:
             severity: critical
@@ -83,11 +89,12 @@ spec:
             summary: "clog-backend 5xx 에러율 5% 초과"
             description: "최근 5분 에러율 {{`{{ $value | humanizePercentage }}`}}"
         
-        # p95 응답시간 > 1초
+        # p95 응답시간 > 1초 (헬스체크·/metrics 제외 — 빠른 요청이 p95 를 끌어내림)
+        # 실제 지표 이름은 starlette_requests_processing_time_seconds (예전 이름은 존재하지 않았음)
         - alert: ClogHighLatency
           expr: |
             histogram_quantile(0.95,
-              sum(rate(starlette_request_duration_seconds_bucket{app="clog-backend"}[5m])) by (le)
+              sum by (namespace, le) (rate(starlette_requests_processing_time_seconds_bucket{app="clog-backend",path_template!~"/metrics|/health/.*"}[5m]))
             ) > 1.0
           for: 5m
           labels:
@@ -100,7 +107,7 @@ spec:
         # Rate limit 비정상 폭증 (5분간 100건 이상)
         - alert: ClogRateLimitSurge
           expr: |
-            sum(rate(starlette_requests_total{app="clog-backend",status_code="429"}[5m])) > 0.33
+            sum by (namespace) (rate(starlette_responses_total{app="clog-backend",status_code="429"}[5m])) > 0.33
           for: 5m
           labels:
             severity: warning
