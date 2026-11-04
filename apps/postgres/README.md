@@ -31,8 +31,10 @@ apps/postgres/
 ├── Chart.yaml              # 의존성 없음
 ├── values.yaml             # 설정값
 ├── README.md
+├── RESTORE.md              # 백업 복구 runbook
 └── templates/
     ├── _helpers.tpl        # 헬퍼 함수
+    ├── backup-cronjob.yaml # 매일 pg_dump → MinIO
     ├── configmap.yaml      # postgresql.conf + init SQL
     ├── service.yaml        # regular + headless
     └── statefulset.yaml    # ⭐ 핵심
@@ -98,12 +100,11 @@ kubectl logs -n dev postgres-0
 - prod 네임스페이스에 별도 Secret 생성
 ```
 
-## 백업 전략 (추후)
+## 백업 / 복구
 
-지금은 미설정. 검토 옵션:
-1. **CronJob + pg_dump** ⭐ 단순, 권장
-2. **Velero**: K8s 전체 백업 (PVC 포함)
-3. **CloudNativePG로 전환**: built-in PITR
+- `templates/backup-cronjob.yaml`: 매일 03:00 KST `pg_dump | gzip` → rclone → MinIO, 7일 보관
+- 복구 절차·검증 쿼리·리허설 기록: **[RESTORE.md](RESTORE.md)** (2026-11-04 리허설 통과)
+- 한계: 백업이 같은 노드 MinIO 에 있음 (외부 복제 미구성), PITR 불가
 
 ## ADR 참조
 
