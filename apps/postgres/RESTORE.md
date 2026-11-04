@@ -14,9 +14,11 @@
 | 파일명 | `postgres-prod-clog_dev-YYYYMMDD-HHMMSS.sql.gz` (prod DB 이름도 `clog_dev`) |
 | RPO | 최대 24시간 |
 | 실패 감지 | `set -euo pipefail` → pg_dump 실패 시 Job 실패 → `KubeJobFailed` 알림 |
+| 외부 복제 | 노트북(Windows)이 매일 09:00·로그온 시 pull, age 암호문으로 30일(최소 7개) 보관 — [아래](#외부-복제-노트북) |
 
 ### ⚠️ 알려진 한계
-- **백업이 DB 와 같은 노드·같은 디스크에 있다.** NVMe/노드를 잃으면 DB 와 백업이 함께 사라진다 (외부 복제 미구성).
+- 클러스터 안 백업은 DB 와 같은 노드·같은 디스크에 있다 → 노드를 잃으면 **노트북 사본이 유일한 백업**.
+- 노트북 사본은 노트북이 켜져야 갱신된다. 복제 신선도 알림은 아직 없음 (Pi 의 `~/.local/state/clog-backup/exports.log` 로 수동 확인).
 - PITR 불가 (WAL 아카이빙 없음) — 마지막 03:00 시점으로만 되돌릴 수 있다.
 
 ## 1. 백업 목록 확인
@@ -121,8 +123,39 @@ rm -r $D
 5. 바꿔 끼우기: `ALTER DATABASE clog_dev RENAME TO clog_broken; ALTER DATABASE clog_restore RENAME TO clog_dev;` (접속 0 상태에서)
 6. 앱 복귀: replicas 원복 → auto-sync 재개 → `/api/health/ready` 확인
 
+## 외부 복제 (노트북)
+
+노트북이 Pi 에서 가져가는 pull 방식 — 노트북이 꺼져 있던 날은 켜질 때 따라잡고, Pi 에 새 포트를 열거나 MinIO 를 노출하지 않는다.
+
+```
+[노트북 작업 스케줄러 clog-backup-pull: 매일 09:00 + 로그온 3분 뒤, 놓친 실행은 켜지면 즉시]
+  scripts/pull-backup.ps1
+   └ ssh -i pull_ed25519 miginho@100.96.195.103 (Tailscale)
+        → Pi authorized_keys: command="scripts/backup-export.sh",restrict,from="LAN,Tailscale"
+          1) rclone 일회용 Pod 로 최신 prod 백업  2) 48h 신선도·gzip·dump complete 검사
+          3) age 공개키로 암호화 → stdout       4) exports.log 기록
+   ← .sql.gz.age
+  복호화 → 크기 일치 → gzip 해제 → dump complete 확인 → 암호문만 backups\ 에 저장 (평문은 임시 파일 후 삭제)
+```
+
+| 항목 | 위치 |
+|---|---|
+| Pi 내보내기 | `scripts/backup-export.sh`, 공개키 `~/.config/clog-backup/recipient`, 기록 `~/.local/state/clog-backup/exports.log` |
+| 노트북 | `%USERPROFILE%\clog-backup\` — `pull-backup.ps1`, `register-pull-task.ps1`, `backups\`, `pull.log` |
+| 키 | `keys\pull_ed25519` (이 스크립트만 실행 가능한 키), `keys\age.key` (**비밀키 — 사본을 노트북 밖에도 보관, 잃으면 복제본 복구 불가**) |
+
+### 노트북 사본으로 복구할 때
+
+```powershell
+cd $env:USERPROFILE\clog-backup
+age -d -i keys\age.key -o restore.sql.gz backups\<파일>.sql.gz.age
+scp restore.sql.gz miginho@<Pi>:/tmp/     # 이후 2~5 절 그대로 (F=/tmp/restore.sql.gz)
+Remove-Item restore.sql.gz                # 평문 삭제
+```
+
 ## 리허설 기록
 
 | 날짜 | 백업 파일 | 결과 | 복구 시간 | 비고 |
 |---|---|---|---|---|
 | 2026-11-04 | prod 2026-11-03 03:00 KST (34.9KB) | ✅ 오류 0, 10개 테이블 행 수 일치(361행), alembic `8e9240acd321` = head, 인덱스 36·FK 14 유효 | 컨테이너 준비 2.0s + 복구 0.3s | 리허설 중 `pipefail` 누락 발견·수정 (pg_dump 실패해도 20B 빈 백업이 Complete 로 업로드되던 문제) |
+| 2026-11-04 | 노트북 외부 복제 첫 pull (같은 파일) | ✅ Pi → age → Tailscale → 노트북 복호화 34,892B 일치, 스케줄러 숨김 실행 LastTaskResult 0 | 내보내기 약 6s | forced command 환경엔 `.bashrc` 가 없어 KUBECONFIG 미설정 → k3s kubectl 이 root 전용 k3s.yaml 을 읽다 실패 → 스크립트에서 명시 |

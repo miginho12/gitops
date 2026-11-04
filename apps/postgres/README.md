@@ -104,7 +104,8 @@ kubectl logs -n dev postgres-0
 
 - `templates/backup-cronjob.yaml`: 매일 03:00 KST `pg_dump | gzip` → rclone → MinIO, 7일 보관
 - 복구 절차·검증 쿼리·리허설 기록: **[RESTORE.md](RESTORE.md)** (2026-11-04 리허설 통과)
-- 한계: 백업이 같은 노드 MinIO 에 있음 (외부 복제 미구성), PITR 불가
+- 외부 복제: 노트북이 매일 pull (age 암호화, `scripts/backup-export.sh` · `pull-backup.ps1`)
+- 한계: 복제 신선도 알림 없음, PITR 불가
 
 ## ADR 참조
 
