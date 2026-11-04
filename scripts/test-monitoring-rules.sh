@@ -6,7 +6,8 @@
 # promtool 은 클러스터와 같은 버전 이미지를 docker 로 돌린다 (설치 불필요, 버전 고정).
 #
 # 한계: test rules 는 테스트에 적은 시리즈 이름을 믿는다 → 지표 이름 오타로 "절대 안 울리는 룰"
-# (2026-11-03 실제 사례) 은 못 잡는다. 그건 실제 Prometheus 대조가 필요.
+# (2026-11-03 실제 사례) 은 못 잡는다 → Pi 에서 scripts/check-rule-metrics.sh 로 실제 Prometheus 와 대조.
+# 반대로 그 스크립트는 and/on 라벨 매칭 버그(11-04 OOM 룰)를 못 잡는다 — 둘을 함께 돌린다.
 #
 # 사용: ./scripts/test-monitoring-rules.sh
 
