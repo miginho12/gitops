@@ -18,7 +18,7 @@
 
 ### ⚠️ 알려진 한계
 - 클러스터 안 백업은 DB 와 같은 노드·같은 디스크에 있다 → 노드를 잃으면 **노트북 사본이 유일한 백업**.
-- 노트북 사본은 노트북이 켜져야 갱신된다. 복제 신선도 알림은 아직 없음 (Pi 의 `~/.local/state/clog-backup/exports.log` 로 수동 확인).
+- 노트북 사본은 노트북이 켜져(로그인 상태) 있어야 갱신된다 → 노트북이 ack 한 시각을 지표로 감시, 72h 끊기면 `ClogBackupReplicaStale` (Discord infra).
 - PITR 불가 (WAL 아카이빙 없음) — 마지막 03:00 시점으로만 되돌릴 수 있다.
 
 ## 1. 백업 목록 확인
@@ -136,6 +136,10 @@ rm -r $D
           3) age 공개키로 암호화 → stdout       4) exports.log 기록
    ← .sql.gz.age
   복호화 → 크기 일치 → gzip 해제 → dump complete 확인 → 암호문만 backups\ 에 저장 (평문은 임시 파일 후 삭제)
+  └ ssh ... ack <파일명>  (저장 성공·이미 있음 모두)
+        → Pi: /var/lib/node_exporter/textfile_collector/clog_backup_replica.prom 갱신
+        → node-exporter textfile collector → Prometheus
+          ClogBackupReplicaStale (ack 72h 초과) / ClogBackupReplicaMetricMissing (지표 1h 없음)
 ```
 
 | 항목 | 위치 |
@@ -158,4 +162,5 @@ Remove-Item restore.sql.gz                # 평문 삭제
 | 날짜 | 백업 파일 | 결과 | 복구 시간 | 비고 |
 |---|---|---|---|---|
 | 2026-11-04 | prod 2026-11-03 03:00 KST (34.9KB) | ✅ 오류 0, 10개 테이블 행 수 일치(361행), alembic `8e9240acd321` = head, 인덱스 36·FK 14 유효 | 컨테이너 준비 2.0s + 복구 0.3s | 리허설 중 `pipefail` 누락 발견·수정 (pg_dump 실패해도 20B 빈 백업이 Complete 로 업로드되던 문제) |
+| 2026-11-04 | 신선도 감시 (ack) | ✅ 노트북 ack → .prom → Prometheus 수집, Missing pending→inactive. promtool test rules 3 시나리오 통과 | - | 지표 파일은 umask 077 이면 node-exporter(uid 65534)가 못 읽어 644 명시 |
 | 2026-11-04 | 노트북 외부 복제 첫 pull (같은 파일) | ✅ Pi → age → Tailscale → 노트북 복호화 34,892B 일치, 스케줄러 숨김 실행 LastTaskResult 0 | 내보내기 약 6s | forced command 환경엔 `.bashrc` 가 없어 KUBECONFIG 미설정 → k3s kubectl 이 root 전용 k3s.yaml 을 읽다 실패 → 스크립트에서 명시 |
