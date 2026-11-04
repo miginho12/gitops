@@ -1,0 +1,42 @@
+# promtool 룰 단위 테스트 — scripts/test-monitoring-rules.sh 가 실행한다 (로컬·CI 동일).
+# rule_files 는 렌더된 PrometheusRule 이름별 파일 (스크립트가 templates/prometheus-rules.yaml 에서 추출).
+# 주의: 여기 시리즈 이름은 "가정"이다 — 지표 이름이 실제로 있는지는 이 테스트로 못 잡는다.
+rule_files: [infra-alerts.yaml, clog-service-alerts.yaml]
+evaluation_interval: 1m
+tests:
+  # ── ClogBackupReplicaStale / MetricMissing ──
+  # ack 시각이 0 에 고정 = 이후 pull 없음 (node-exporter 는 매 스크레이프 노출 → 1m 간격으로 재현)
+  - interval: 1m
+    input_series:
+      - series: 'clog_backup_replica_last_success_timestamp_seconds{ns="prod"}'
+        values: '0x4400'
+    alert_rule_test:
+      - {eval_time: 71h,   alertname: ClogBackupReplicaStale, exp_alerts: []}   # 72h 전
+      - {eval_time: 72h5m, alertname: ClogBackupReplicaStale, exp_alerts: []}   # 넘었지만 for 10m 대기
+      - eval_time: 72h15m
+        alertname: ClogBackupReplicaStale
+        exp_alerts:
+          - exp_labels: {severity: warning, category: infra, ns: prod}
+            exp_annotations:
+              summary: "DB 백업 외부 복제가 72시간 넘게 멈춤 (prod)"
+              description: "노트북이 마지막으로 사본을 저장한 지 3d 0h 15m 0s. 노트북 작업 스케줄러 clog-backup-pull·pull.log 확인."
+      - {eval_time: 72h15m, alertname: ClogBackupReplicaMetricMissing, exp_alerts: []}
+  # 매일 ack 갱신되는 정상 상태 → 안 울림
+  - interval: 1m
+    input_series:
+      - series: 'clog_backup_replica_last_success_timestamp_seconds{ns="prod"}'
+        values: '0x1439 86400x1439 172800x1439 259200x1439'
+    alert_rule_test:
+      - {eval_time: 95h, alertname: ClogBackupReplicaStale, exp_alerts: []}
+  # 지표 없음 → 1h 뒤 Missing
+  - interval: 1m
+    input_series: []
+    alert_rule_test:
+      - {eval_time: 50m, alertname: ClogBackupReplicaMetricMissing, exp_alerts: []}
+      - eval_time: 61m
+        alertname: ClogBackupReplicaMetricMissing
+        exp_alerts:
+          - exp_labels: {severity: warning, category: infra}
+            exp_annotations:
+              summary: "DB 백업 외부 복제 지표 없음"
+              description: "clog_backup_replica_last_success_timestamp_seconds 가 1시간째 없음. /var/lib/node_exporter/textfile_collector/clog_backup_replica.prom 과 node-exporter --collector.textfile.directory 확인."

@@ -1,0 +1,45 @@
+# 알림 룰 promtool 검사 — monitoring 차트가 바뀔 때만 돈다 (앱 저장소의 이미지 태그 bump 커밋엔 안 돈다).
+# 실제 검사는 scripts/test-monitoring-rules.sh (로컬에서도 같은 스크립트로 재현).
+name: monitoring-rules
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - apps/monitoring/**
+      - scripts/test-monitoring-rules.sh
+      - .github/workflows/monitoring-rules.yml
+  pull_request:
+    paths:
+      - apps/monitoring/**
+      - scripts/test-monitoring-rules.sh
+      - .github/workflows/monitoring-rules.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: monitoring-rules-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  promtool:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: azure/setup-helm@v4
+        with:
+          version: v3.21.1        # Pi 의 helm 과 같은 버전
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install PyYAML
+        run: pip install pyyaml==6.0.2
+
+      - name: promtool check + test rules
+        run: ./scripts/test-monitoring-rules.sh
