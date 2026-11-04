@@ -37,7 +37,9 @@ spec:
                 - sh
                 - -c
                 - |
-                  set -eu
+                  # pipefail: 없으면 pg_dump 가 실패해도 gzip 성공으로 빈 백업(20B)이 Complete 로 업로드되고,
+                  # 7일 뒤 rclone delete 가 정상 백업을 다 지운다 (2026-11-04 재현). busybox sh 지원 확인.
+                  set -euo pipefail
                   FILE="/dump/{{ include "postgres.fullname" . }}-{{ .Values.database.name }}-$(date -u +%Y%m%d-%H%M%S).sql.gz"
                   pg_dump -h {{ include "postgres.fullname" . }} -U {{ .Values.database.user }} -d {{ .Values.database.name }} | gzip > "$FILE"
                   echo "dumped $FILE ($(du -h "$FILE" | cut -f1))"
