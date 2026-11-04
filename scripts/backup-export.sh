@@ -10,8 +10,12 @@
 # 실패: 백업이 없거나 / 잘렸거나(dump complete 없음) / 48시간보다 오래됐으면 exit ≠ 0, stdout 비움
 #
 # 설정: ~/.config/clog-backup/recipient  (노트북에서 만든 age 공개키 한 줄, age1...)
-# 기록: ~/.local/state/clog-backup/exports.log (내보낸 시각 — 복제 신선도 확인용)
+# 기록: ~/.local/state/clog-backup/exports.log (내보낸·ack 받은 기록)
 # 수동 테스트: NS=dev BUCKET=clog-backups ./scripts/backup-export.sh > /tmp/x.age
+#
+# ack: 노트북이 검증·저장을 끝낸 뒤 `ssh ... ack <파일명>` 을 보낸다 (SSH_ORIGINAL_COMMAND).
+# 그때만 node-exporter textfile 지표를 갱신 → "노트북에 쓸 수 있는 사본이 생긴 시각"을 감시한다
+# (Pi 가 보낸 시각만 보면 노트북 쪽 복호화·저장 실패를 놓친다). 알림: ClogBackupReplicaStale.
 
 set -euo pipefail
 export PATH=/usr/local/bin:/usr/bin:/bin
@@ -27,7 +31,35 @@ RECIPIENT_FILE="$HOME/.config/clog-backup/recipient"
 LOG_DIR="$HOME/.local/state/clog-backup"
 RCLONE_IMAGE="rclone/rclone:1.71.1"   # apps/postgres/values.yaml backup.image 와 같은 버전
 
+METRICS_DIR="${METRICS_DIR:-/var/lib/node_exporter/textfile_collector}"
+
 log() { echo "backup-export: $*" >&2; }
+CLIENT="${SSH_CLIENT:-local}"; CLIENT="${CLIENT%% *}"   # 접속한 IP (수동 실행은 local)
+
+# ── ack <파일명>: 지표만 갱신하고 끝 ──
+read -r CMD ARG _ <<< "${SSH_ORIGINAL_COMMAND:-}"
+if [ "$CMD" = "ack" ]; then
+  # 파일명 형식 + 실제로 내보낸 적 있는 파일만 (임의 문자열이 지표·로그에 들어가지 않게)
+  [[ "$ARG" =~ ^[A-Za-z0-9_.-]+-[0-9]{8}-[0-9]{6}\.sql\.gz$ ]] || { log "ack 파일명 형식 오류"; exit 6; }
+  grep -q " ns=$NS file=$ARG " "$LOG_DIR/exports.log" 2>/dev/null || { log "내보낸 기록 없는 파일: $ARG"; exit 6; }
+  TS=$(echo "$ARG" | grep -oE '[0-9]{8}-[0-9]{6}' | tail -1)
+  BTS=$(date -u -d "${TS:0:8} ${TS:9:2}:${TS:11:2}:${TS:13:2}" +%s)
+  NOW=$(date -u +%s)
+  # node-exporter(uid 65534) 가 읽어야 해서 644, 반쯤 쓴 파일을 읽지 않게 mv 로 교체
+  PROM="$METRICS_DIR/clog_backup_replica.prom"
+  cat > "$PROM.tmp" <<EOF
+# HELP clog_backup_replica_last_success_timestamp_seconds 노트북이 백업 사본을 검증·저장하고 ack 한 시각
+# TYPE clog_backup_replica_last_success_timestamp_seconds gauge
+clog_backup_replica_last_success_timestamp_seconds{ns="$NS"} $NOW
+# HELP clog_backup_replica_backup_timestamp_seconds 노트북에 있는 최신 사본의 백업 생성 시각
+# TYPE clog_backup_replica_backup_timestamp_seconds gauge
+clog_backup_replica_backup_timestamp_seconds{ns="$NS"} $BTS
+EOF
+  chmod 644 "$PROM.tmp" && mv "$PROM.tmp" "$PROM"
+  echo "$(date -u +%FT%TZ) ack ns=$NS file=$ARG client=$CLIENT" >> "$LOG_DIR/exports.log"
+  log "ack ok file=$ARG"
+  exit 0
+fi
 
 [ -s "$RECIPIENT_FILE" ] || { log "공개키 없음: $RECIPIENT_FILE"; exit 2; }
 
@@ -69,5 +101,5 @@ BYTES=$(stat -c %s "$TMP/$FILE")
 cat "$TMP/out.age"
 
 mkdir -p "$LOG_DIR"
-echo "$(date -u +%FT%TZ) ns=$NS file=$FILE bytes=$BYTES age_h=$AGE_H client=${SSH_CLIENT%% *}" >> "$LOG_DIR/exports.log"
+echo "$(date -u +%FT%TZ) ns=$NS file=$FILE bytes=$BYTES age_h=$AGE_H client=$CLIENT" >> "$LOG_DIR/exports.log"
 log "file=$FILE bytes=$BYTES age_h=$AGE_H"

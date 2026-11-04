@@ -23,6 +23,15 @@ function Write-Log($msg) {
     Write-Host $line
 }
 
+# 검증·저장이 끝났다고 Pi 에 알린다 → Pi 가 신선도 지표 갱신 (알림 ClogBackupReplicaStale)
+function Send-Ack($fileName) {
+    $a = Start-Process -FilePath $ssh -NoNewWindow -Wait -PassThru `
+        -RedirectStandardOutput $tmpAck -RedirectStandardError $tmpErr `
+        -ArgumentList @('-i', $SshKey, '-o', 'IdentitiesOnly=yes', '-o', 'BatchMode=yes',
+                        '-o', 'ConnectTimeout=20', $PiHost, 'ack', $fileName)
+    if ($a.ExitCode -ne 0) { throw "ack 실패 exit=$($a.ExitCode): $(Get-Content $tmpErr -Raw -ErrorAction SilentlyContinue)" }
+}
+
 New-Item -ItemType Directory -Force -Path $OutDir | Out-Null
 $ssh = (Get-Command ssh -ErrorAction Stop).Source
 $age = (Get-Command age -ErrorAction Stop).Source
@@ -30,6 +39,7 @@ $age = (Get-Command age -ErrorAction Stop).Source
 $tmpEnc = [IO.Path]::GetTempFileName()
 $tmpErr = [IO.Path]::GetTempFileName()
 $tmpGz  = [IO.Path]::GetTempFileName()
+$tmpAck = [IO.Path]::GetTempFileName()
 try {
     # 1) 가져오기 — Start-Process 리다이렉트는 바이트 그대로 저장한다 (PS 5.1 의 > 는 바이너리를 깨뜨림)
     $p = Start-Process -FilePath $ssh -NoNewWindow -Wait -PassThru `
@@ -44,7 +54,8 @@ try {
     $name = $Matches[1]; $bytes = [long]$Matches[2]
     $dest = Join-Path $OutDir ($name + '.age')
 
-    if (Test-Path $dest) { Write-Log "SKIP 이미 있음 $name"; exit 0 }
+    # 이미 검증·저장된 사본이 있음 → 저장은 건너뛰되 ack 는 보낸다 (사본이 있다는 사실은 그대로)
+    if (Test-Path $dest) { Send-Ack $name; Write-Log "SKIP 이미 있음 $name (ack)"; exit 0 }
 
     # 2) 검증 — 복호화 → 원본 크기 일치 → gzip 해제 → pg_dump 끝 표시
     & $age -d -i $AgeKey -o $tmpGz $tmpEnc
@@ -61,7 +72,8 @@ try {
 
     # 3) 저장 — 암호문만
     Move-Item -Path $tmpEnc -Destination $dest
-    Write-Log "OK $name gz=$bytes enc=$((Get-Item $dest).Length)"
+    Send-Ack $name
+    Write-Log "OK $name gz=$bytes enc=$((Get-Item $dest).Length) (ack)"
 
     # 4) 보관 정리 — KeepDays 지난 것 삭제, 단 최신 KeepMin 개는 항상 유지
     $files = Get-ChildItem $OutDir -Filter '*.sql.gz.age' | Sort-Object Name -Descending
@@ -76,7 +88,7 @@ catch {
 }
 finally {
     # 평문(복호화본)과 임시 파일 정리
-    foreach ($f in @($tmpEnc, $tmpErr, $tmpGz)) { if (Test-Path $f) { Remove-Item $f -Force } }
+    foreach ($f in @($tmpEnc, $tmpErr, $tmpGz, $tmpAck)) { if (Test-Path $f) { Remove-Item $f -Force } }
 }
 
 # 작업 스케줄러 등록: scripts/register-pull-task.ps1 (같은 폴더에 복사 후 한 번 실행)
