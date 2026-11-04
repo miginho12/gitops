@@ -170,10 +170,12 @@ spec:
         # 워커 컨테이너가 memcg OOM 으로 커널에 의해 강제 종료됨.
         # last_terminated_reason 은 다음 종료 전까지 안 꺼지는 게이지라,
         # 최근 재시작(increase>0)과 and 로 묶어 15분 지나면 자동 resolve 되게 한다.
+        # on(...) 필수: last_terminated_reason 에만 reason 라벨이 있어 그냥 and 하면 라벨 집합이 달라
+        # 절대 매칭 안 됨 (2026-07-27 추가 후 11-04 까지 발화 불가였음 — promtool 테스트로 발견).
         - alert: ClogWorkerOOMKilled
           expr: |
             increase(kube_pod_container_status_restarts_total{container="clog-worker"}[15m]) > 0
-            and
+            and on (namespace, pod, container)
             kube_pod_container_status_last_terminated_reason{container="clog-worker", reason="OOMKilled"} == 1
           for: 0m
           labels:

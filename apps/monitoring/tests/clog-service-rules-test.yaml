@@ -1,0 +1,193 @@
+# clog-service-alerts 단위 테스트 — scripts/test-monitoring-rules.sh 가 실행한다.
+# 시리즈 라벨은 2026-11-04 실제 Prometheus 에서 확인한 구성을 줄여 쓴 것.
+# 각 룰마다 "울려야 함"과 "울리면 안 됨"(저트래픽·헬스체크 제외·정상 상태)을 함께 둔다.
+rule_files: [clog-service-alerts.yaml]
+evaluation_interval: 1m
+tests:
+  # ── ClogHighErrorRate: 비율 > 5% AND 5분간 5xx >= 3, for 5m ──
+  # 분당 요청 20 중 5xx 2 (10%) → 울림
+  - interval: 1m
+    input_series:
+      - series: 'starlette_responses_total{app="clog-backend",namespace="prod",method="GET",path_template="/api/v1/logs",status_code="200"}'
+        values: '0+18x30'
+      - series: 'starlette_responses_total{app="clog-backend",namespace="prod",method="GET",path_template="/api/v1/logs",status_code="500"}'
+        values: '0+2x30'
+    alert_rule_test:
+      - {eval_time: 4m, alertname: ClogHighErrorRate, exp_alerts: []}     # for 5m 대기
+      - eval_time: 15m
+        alertname: ClogHighErrorRate
+        exp_alerts:
+          - exp_labels: {severity: critical, category: service, namespace: prod}
+            exp_annotations:
+              summary: "clog-backend 5xx 에러율 5% 초과"
+              description: "최근 5분 에러율 10%"
+  # 저트래픽에서 500 단 1건 (비율은 높지만 최소 건수 미달) → 안 울림 (단발성은 ClogUnhandledException 담당)
+  - interval: 1m
+    input_series:
+      - series: 'starlette_responses_total{app="clog-backend",namespace="prod",method="GET",path_template="/api/v1/logs",status_code="200"}'
+        values: '0+1x30'
+      - series: 'starlette_responses_total{app="clog-backend",namespace="prod",method="GET",path_template="/api/v1/logs",status_code="500"}'
+        values: '0 1x30'
+    alert_rule_test:
+      - {eval_time: 15m, alertname: ClogHighErrorRate, exp_alerts: []}
+  # 5xx 는 많지만 비율 2% → 안 울림
+  - interval: 1m
+    input_series:
+      - series: 'starlette_responses_total{app="clog-backend",namespace="prod",method="GET",path_template="/api/v1/logs",status_code="200"}'
+        values: '0+100x30'
+      - series: 'starlette_responses_total{app="clog-backend",namespace="prod",method="GET",path_template="/api/v1/logs",status_code="500"}'
+        values: '0+2x30'
+    alert_rule_test:
+      - {eval_time: 15m, alertname: ClogHighErrorRate, exp_alerts: []}
+  # DB 장애로 /health/ready 가 503 폭주 — 헬스체크는 분모·분자 모두 제외 → 이 룰은 안 울림
+  - interval: 1m
+    input_series:
+      - series: 'starlette_responses_total{app="clog-backend",namespace="prod",method="GET",path_template="/health/ready",status_code="503"}'
+        values: '0+10x30'
+      - series: 'starlette_responses_total{app="clog-backend",namespace="prod",method="GET",path_template="/metrics",status_code="200"}'
+        values: '0+4x30'
+      - series: 'starlette_responses_total{app="clog-backend",namespace="prod",method="GET",path_template="/api/v1/logs",status_code="200"}'
+        values: '0+5x30'
+    alert_rule_test:
+      - {eval_time: 15m, alertname: ClogHighErrorRate, exp_alerts: []}
+
+  # ── ClogHighLatency: p95 > 1s (헬스체크·/metrics 제외), for 5m ──
+  # 모든 API 요청이 1~2.5s 구간 → p95 = 1 + 1.5*0.95 = 2.425s → 울림
+  - interval: 1m
+    input_series:
+      - series: 'starlette_requests_processing_time_seconds_bucket{app="clog-backend",namespace="prod",method="GET",path_template="/api/v1/logs",le="0.5"}'
+        values: '0x30'
+      - series: 'starlette_requests_processing_time_seconds_bucket{app="clog-backend",namespace="prod",method="GET",path_template="/api/v1/logs",le="1.0"}'
+        values: '0x30'
+      - series: 'starlette_requests_processing_time_seconds_bucket{app="clog-backend",namespace="prod",method="GET",path_template="/api/v1/logs",le="2.5"}'
+        values: '0+10x30'
+      - series: 'starlette_requests_processing_time_seconds_bucket{app="clog-backend",namespace="prod",method="GET",path_template="/api/v1/logs",le="+Inf"}'
+        values: '0+10x30'
+    alert_rule_test:
+      - eval_time: 15m
+        alertname: ClogHighLatency
+        exp_alerts:
+          - exp_labels: {severity: warning, category: service, namespace: prod}
+            exp_annotations:
+              summary: "clog-backend p95 응답시간 1초 초과"
+              description: "p95 = 2.425s (목표: 200ms 이하)"
+  # 느린 건 /health/ready 뿐, API 는 0.5s 이하 → 안 울림
+  - interval: 1m
+    input_series:
+      - series: 'starlette_requests_processing_time_seconds_bucket{app="clog-backend",namespace="prod",method="GET",path_template="/health/ready",le="1.0"}'
+        values: '0x30'
+      - series: 'starlette_requests_processing_time_seconds_bucket{app="clog-backend",namespace="prod",method="GET",path_template="/health/ready",le="+Inf"}'
+        values: '0+10x30'
+      - series: 'starlette_requests_processing_time_seconds_bucket{app="clog-backend",namespace="prod",method="GET",path_template="/api/v1/logs",le="0.5"}'
+        values: '0+10x30'
+      - series: 'starlette_requests_processing_time_seconds_bucket{app="clog-backend",namespace="prod",method="GET",path_template="/api/v1/logs",le="+Inf"}'
+        values: '0+10x30'
+    alert_rule_test:
+      - {eval_time: 15m, alertname: ClogHighLatency, exp_alerts: []}
+
+  # ── ClogRateLimitSurge: 429 > 0.33/s (5분 100건), for 5m ──
+  - interval: 1m
+    input_series:
+      - series: 'starlette_responses_total{app="clog-backend",namespace="prod",method="POST",path_template="/api/v1/auth/login",status_code="429"}'
+        values: '0+30x30'                  # 0.5/s
+    alert_rule_test:
+      - eval_time: 15m
+        alertname: ClogRateLimitSurge
+        exp_alerts:
+          - exp_labels: {severity: warning, category: service, namespace: prod}
+            exp_annotations:
+              summary: "clog-backend rate limit 발동 폭증"
+              description: "5분간 429 응답 폭증 - DDoS 의심 또는 정상 트래픽 폭증"
+  - interval: 1m
+    input_series:
+      - series: 'starlette_responses_total{app="clog-backend",namespace="prod",method="POST",path_template="/api/v1/auth/login",status_code="429"}'
+        values: '0+10x30'                  # 0.17/s
+    alert_rule_test:
+      - {eval_time: 15m, alertname: ClogRateLimitSurge, exp_alerts: []}
+
+  # ── ClogUnhandledException: 10분 내 예외 1건 이상 (처음 생긴 시리즈 포함), for 0m ──
+  # 처음 보는 예외 = 카운터가 값 1 로 새로 생김 → increase() 는 못 잡고 unless offset 10m 이 잡는다
+  - interval: 1m
+    input_series:
+      - series: 'starlette_exceptions_total{app="clog-backend",namespace="prod",method="POST",path_template="/api/v1/logs",exception_type="KeyError"}'
+        values: '_x20 1x40'                # 앞 20개 빈 값 → 20분에 처음 생김
+    alert_rule_test:
+      - {eval_time: 19m, alertname: ClogUnhandledException, exp_alerts: []}   # 아직 없음
+      - eval_time: 23m
+        alertname: ClogUnhandledException
+        exp_alerts:
+          - exp_labels: {severity: warning, category: service, namespace: prod, path_template: /api/v1/logs, exception_type: KeyError}
+            exp_annotations:
+              summary: "clog-backend 처리되지 않은 예외 - prod /api/v1/logs"
+              description: 'KeyError 발생(최근 10분). Loki 에서 {namespace="prod"} |= "Traceback" 로 스택트레이스 확인.'
+      - {eval_time: 40m, alertname: ClogUnhandledException, exp_alerts: []}   # 10분 지나면 해제
+  # 이미 있던 예외가 다시 발생 (1 → 2) → increase 가 잡는다
+  - interval: 1m
+    input_series:
+      - series: 'starlette_exceptions_total{app="clog-backend",namespace="prod",method="GET",path_template="/api/v1/feed",exception_type="TimeoutError"}'
+        values: '1x30 2x30'
+    alert_rule_test:
+      - {eval_time: 25m, alertname: ClogUnhandledException, exp_alerts: []}
+      - eval_time: 35m
+        alertname: ClogUnhandledException
+        exp_alerts:
+          - exp_labels: {severity: warning, category: service, namespace: prod, path_template: /api/v1/feed, exception_type: TimeoutError}
+            exp_annotations:
+              summary: "clog-backend 처리되지 않은 예외 - prod /api/v1/feed"
+              description: 'TimeoutError 발생(최근 10분). Loki 에서 {namespace="prod"} |= "Traceback" 로 스택트레이스 확인.'
+      - {eval_time: 50m, alertname: ClogUnhandledException, exp_alerts: []}
+
+  # ── ClogWorkerOOMKilled: 15분 내 재시작 AND 마지막 종료 사유 OOMKilled ──
+  # kube-state-metrics 의 last_terminated_reason 에만 reason 라벨이 있다 (실제 라벨 구성)
+  - interval: 1m
+    input_series:
+      - series: 'kube_pod_container_status_restarts_total{job="kube-state-metrics",namespace="prod",pod="clog-prod-worker-abc",container="clog-worker",uid="u1"}'
+        values: '0x10 1x40'                # 11분에 재시작
+      - series: 'kube_pod_container_status_last_terminated_reason{job="kube-state-metrics",namespace="prod",pod="clog-prod-worker-abc",container="clog-worker",uid="u1",reason="OOMKilled"}'
+        values: '0x10 1x40'
+    alert_rule_test:
+      - {eval_time: 5m, alertname: ClogWorkerOOMKilled, exp_alerts: []}
+      - eval_time: 15m
+        alertname: ClogWorkerOOMKilled
+        exp_alerts:
+          - exp_labels: {severity: critical, category: service, job: kube-state-metrics, namespace: prod, pod: clog-prod-worker-abc, container: clog-worker, uid: u1}
+            exp_annotations:
+              summary: "clog-worker OOMKilled - prod/clog-prod-worker-abc"
+              description: "워커 컨테이너가 메모리 한도 초과로 강제 종료됨. media_status=processing 에 멈춘 게시물이 있을 수 있음(media_stale_reconcile CronJob이 정리하지만 확인 필요)."
+      - {eval_time: 40m, alertname: ClogWorkerOOMKilled, exp_alerts: []}      # 15분 지나면 해제
+  # 재시작했지만 사유가 Error (OOM 아님) → 안 울림
+  - interval: 1m
+    input_series:
+      - series: 'kube_pod_container_status_restarts_total{job="kube-state-metrics",namespace="prod",pod="clog-prod-worker-abc",container="clog-worker",uid="u1"}'
+        values: '0x10 1x40'
+      - series: 'kube_pod_container_status_last_terminated_reason{job="kube-state-metrics",namespace="prod",pod="clog-prod-worker-abc",container="clog-worker",uid="u1",reason="Error"}'
+        values: '0x10 1x40'
+    alert_rule_test:
+      - {eval_time: 15m, alertname: ClogWorkerOOMKilled, exp_alerts: []}
+
+  # ── ClogWorkerHighMemory: working set / limit > 90%, for 5m ──
+  # 같은 Pod 의 working set 시리즈가 2개여도(스크레이프 중복) max by 로 합쳐져야 한다
+  - interval: 1m
+    input_series:
+      - series: 'container_memory_working_set_bytes{job="kubelet",namespace="prod",pod="clog-prod-worker-abc",container="clog-worker",id="/a"}'
+        values: '996147200x20'             # 950MiB
+      - series: 'container_memory_working_set_bytes{job="kubelet",namespace="prod",pod="clog-prod-worker-abc",container="clog-worker",id="/b"}'
+        values: '996147200x20'
+      - series: 'kube_pod_container_resource_limits{job="kube-state-metrics",namespace="prod",pod="clog-prod-worker-abc",container="clog-worker",resource="memory",unit="byte"}'
+        values: '1048576000x20'            # 1000MiB
+    alert_rule_test:
+      - eval_time: 10m
+        alertname: ClogWorkerHighMemory
+        exp_alerts:
+          - exp_labels: {severity: warning, category: service, namespace: prod, pod: clog-prod-worker-abc}
+            exp_annotations:
+              summary: "clog-worker 메모리 사용량 90% 초과 - prod/clog-prod-worker-abc"
+              description: "메모리 한도 근접(limit 대비 95%), OOMKill 임박 가능성"
+  - interval: 1m
+    input_series:
+      - series: 'container_memory_working_set_bytes{job="kubelet",namespace="prod",pod="clog-prod-worker-abc",container="clog-worker",id="/a"}'
+        values: '838860800x20'             # 800MiB = 80%
+      - series: 'kube_pod_container_resource_limits{job="kube-state-metrics",namespace="prod",pod="clog-prod-worker-abc",container="clog-worker",resource="memory",unit="byte"}'
+        values: '1048576000x20'
+    alert_rule_test:
+      - {eval_time: 10m, alertname: ClogWorkerHighMemory, exp_alerts: []}
