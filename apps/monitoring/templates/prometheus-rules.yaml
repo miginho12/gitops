@@ -53,6 +53,32 @@ spec:
             summary: "CPU 사용량 80% 지속"
             description: "노드 {{`{{ $labels.instance }}`}} CPU 사용량 {{`{{ $value | humanizePercentage }}`}} (15분 지속)"
 
+        # DB 백업 외부 복제(노트북) 신선도. 노트북이 검증·저장 후 ack 한 시각을 backup-export.sh 가
+        # textfile 지표로 남긴다. 노트북은 매일 09:00·로그온 시 pull → 72h 면 주말 꺼짐은 넘기고
+        # 그 이상 끊기면 알림. 노드를 잃으면 노트북 사본이 유일한 백업이라 끊긴 걸 알아야 한다.
+        - alert: ClogBackupReplicaStale
+          expr: |
+            time() - clog_backup_replica_last_success_timestamp_seconds > 72 * 3600
+          for: 10m
+          labels:
+            severity: warning
+            category: infra
+          annotations:
+            summary: "DB 백업 외부 복제가 72시간 넘게 멈춤 ({{`{{ $labels.ns }}`}})"
+            description: "노트북이 마지막으로 사본을 저장한 지 {{`{{ $value | humanizeDuration }}`}}. 노트북 작업 스케줄러 clog-backup-pull·pull.log 확인."
+
+        # 지표 자체가 없음 = .prom 파일 삭제 / textfile collector 설정 빠짐 / node-exporter 다운
+        - alert: ClogBackupReplicaMetricMissing
+          expr: |
+            absent(clog_backup_replica_last_success_timestamp_seconds)
+          for: 1h
+          labels:
+            severity: warning
+            category: infra
+          annotations:
+            summary: "DB 백업 외부 복제 지표 없음"
+            description: "clog_backup_replica_last_success_timestamp_seconds 가 1시간째 없음. /var/lib/node_exporter/textfile_collector/clog_backup_replica.prom 과 node-exporter --collector.textfile.directory 확인."
+
 # ── 클로그 서비스 알람 (category=service) ──
 ---
 apiVersion: monitoring.coreos.com/v1

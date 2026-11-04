@@ -158,6 +158,16 @@ kube-prometheus-stack:
     enabled: true
   nodeExporter:
     enabled: true
+
+  # textfile collector: 호스트 파일로 내보낸 지표를 읽는다 (백업 외부 복제 신선도 — scripts/backup-export.sh).
+  # 호스트 / 가 이미 /host/root 로 마운트돼 있어 볼륨 추가 없이 경로만 지정.
+  # 디렉터리는 Pi 에서 1회 생성: sudo install -d -o miginho -g miginho -m 755 /var/lib/node_exporter/textfile_collector
+  # extraArgs 는 덮어쓰기라 차트 기본 2개(filesystem 제외 규칙)를 그대로 옮겨 적음 — 빠지면 디스크 알림 오탐.
+  prometheus-node-exporter:
+    extraArgs:
+      - --collector.filesystem.mount-points-exclude=^/(dev|proc|sys|run/containerd/.+|var/lib/docker/.+|var/lib/kubelet/.+)($|/)
+      - --collector.filesystem.fs-types-exclude=^(autofs|binfmt_misc|bpf|cgroup2?|configfs|debugfs|devpts|devtmpfs|fusectl|hugetlbfs|iso9660|mqueue|nsfs|overlay|proc|procfs|pstore|rpc_pipefs|securityfs|selinuxfs|squashfs|sysfs|tracefs|erofs)$
+      - --collector.textfile.directory=/host/root/var/lib/node_exporter/textfile_collector
   
   # 기본 K8s 알람 룰 활성 (CrashLoop, OOM, NotReady 등)
   defaultRules:
