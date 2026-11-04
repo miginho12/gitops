@@ -133,6 +133,25 @@ kube-prometheus-stack:
               send_resolved: true
 
   # ────────────────────────────────────────
+  # kubelet 수집 (k3s 중복 지표 제거)
+  # k3s 는 apiserver·kubelet·scheduler 가 한 프로세스라 kubelet /metrics 에도
+  # apiserver 지표가 그대로 노출된다 → apiserver job 과 중복(2026-11-04 약 4.1만 시리즈).
+  # 룰·대시보드가 job="kubelet" 으로 쓰는 건 kubelet_*·storage_*·volume_*·rest_client_*·
+  # process_*·go_* 뿐이라, 아래 4개 접두어만 버린다. 리스트는 덮어쓰기라 차트 기본 규칙도 함께 적음.
+  # ────────────────────────────────────────
+  kubelet:
+    serviceMonitor:
+      metricRelabelings:
+        # 차트 기본값 (storage 버킷 축소)
+        - action: drop
+          sourceLabels: [__name__, le]
+          regex: (csi_operations|storage_operation_duration)_seconds_bucket;(0.25|2.5|15|25|120|600)(\.0)?
+        # apiserver job 이 이미 수집하는 지표
+        - action: drop
+          sourceLabels: [__name__]
+          regex: (apiserver|etcd|workqueue|scheduler)_.*
+
+  # ────────────────────────────────────────
   # 기본 컴포넌트들
   # ────────────────────────────────────────
   kubeStateMetrics:
