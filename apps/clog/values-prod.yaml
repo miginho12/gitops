@@ -8,7 +8,7 @@
 replicaCount: 2
 
 image:
-  tag: "sha-34c3ff9"  # dev 검증 태그 승격 — 피드 정렬 부분 인덱스(ADR-073, 마이그레이션 8e9240acd321 별도 적용) + reconcile 미완료 원본 보존·24h 가드
+  tag: "sha-388f54f"  # dev 검증 태그 승격 — 런타임 의존성 보안 패치(certifi·dnspython·pyasn1, 앱 코드·마이그레이션 변경 없음, 2026-11-09)
   pullPolicy: IfNotPresent
 
 # 내부 전용 NodePort (dev의 30080/30081과 겹치지 않게 30082)
