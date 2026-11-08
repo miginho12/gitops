@@ -7,7 +7,7 @@
 # NodePort(30083) 자체는 그대로, 그 앞단 공개 경로만 바뀜.
 
 image:
-  tag: "sha-bb79646"  # dev에서 검증된 태그를 그대로 승격 — /api/metrics·/api/ 루트 외부 차단(감사 H2) + 빌드 도구 보안 패치(vite 8.3, 런타임 의존성 변경 없음), 2026-11-09
+  tag: "sha-7a1e2e7"  # dev에서 검증된 태그를 그대로 승격 — 실제 클라이언트 IP 전달(realip CF-Connecting-IP + XFF 덮어쓰기, 감사 H3). 이전 bb79646: /api/metrics 차단(H2), 2026-11-09
   pullPolicy: IfNotPresent
 
 service:
