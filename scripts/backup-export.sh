@@ -16,6 +16,14 @@
 # ack: 노트북이 검증·저장을 끝낸 뒤 `ssh ... ack <파일명>` 을 보낸다 (SSH_ORIGINAL_COMMAND).
 # 그때만 node-exporter textfile 지표를 갱신 → "노트북에 쓸 수 있는 사본이 생긴 시각"을 감시한다
 # (Pi 가 보낸 시각만 보면 노트북 쪽 복호화·저장 실패를 놓친다). 알림: ClogBackupReplicaStale.
+#
+# keys / ack-keys <번들>: sealed-secrets 마스터 키 외부 백업 (2026-11-09, 감사 H4)
+#   이 키가 없으면 디스크 유실 시 Git 의 SealedSecret 을 하나도 못 푼다. 컨트롤러가 30일마다
+#   새 키를 만들고 옛 키도 계속 쓰므로 "키 전부"를 매번 내보낸다(수 KB).
+#   keys    : 키 전부를 kind: List JSON(클러스터 고유 메타 제거, kubectl apply 로 복구 가능)으로
+#             age 암호화해 stdout. stderr = "keys=<개수> bundle=sealed-keys-<개수>-<최신키 UTC>"
+#   ack-keys: 노트북 검증 후 지표 갱신 → ClogSealedKeysBackupStale(새 키가 72h 안에 백업 안 됨)
+#   평문 키는 디스크에 쓰지 않는다(파이프로만 age 에 전달).
 
 set -euo pipefail
 export PATH=/usr/local/bin:/usr/bin:/bin
@@ -61,7 +69,64 @@ EOF
   exit 0
 fi
 
+# ── ack-keys <번들>: sealed-secrets 키 백업 지표만 갱신하고 끝 ──
+if [ "$CMD" = "ack-keys" ]; then
+  [[ "$ARG" =~ ^sealed-keys-([0-9]+)-([0-9]{8})-([0-9]{6})$ ]] || { log "ack-keys 번들 형식 오류"; exit 6; }
+  grep -q " keys bundle=$ARG " "$LOG_DIR/exports.log" 2>/dev/null || { log "내보낸 기록 없는 번들: $ARG"; exit 6; }
+  COUNT="${BASH_REMATCH[1]}"; D="${BASH_REMATCH[2]}"; T="${BASH_REMATCH[3]}"
+  NEWEST=$(date -u -d "${D} ${T:0:2}:${T:2:2}:${T:4:2}" +%s)
+  NOW=$(date -u +%s)
+  PROM="$METRICS_DIR/clog_sealed_keys_backup.prom"
+  cat > "$PROM.tmp" <<EOF
+# HELP clog_sealed_keys_backup_last_success_timestamp_seconds 노트북이 sealed-secrets 키 번들을 검증·저장하고 ack 한 시각
+# TYPE clog_sealed_keys_backup_last_success_timestamp_seconds gauge
+clog_sealed_keys_backup_last_success_timestamp_seconds $NOW
+# HELP clog_sealed_keys_backup_newest_key_timestamp_seconds 노트북 번들에 들어 있는 가장 최신 키의 생성 시각
+# TYPE clog_sealed_keys_backup_newest_key_timestamp_seconds gauge
+clog_sealed_keys_backup_newest_key_timestamp_seconds $NEWEST
+# HELP clog_sealed_keys_backup_key_count 노트북 번들에 들어 있는 키 개수
+# TYPE clog_sealed_keys_backup_key_count gauge
+clog_sealed_keys_backup_key_count $COUNT
+EOF
+  chmod 644 "$PROM.tmp" && mv "$PROM.tmp" "$PROM"
+  echo "$(date -u +%FT%TZ) ack-keys bundle=$ARG client=$CLIENT" >> "$LOG_DIR/exports.log"
+  log "ack-keys ok bundle=$ARG"
+  exit 0
+fi
+
 [ -s "$RECIPIENT_FILE" ] || { log "공개키 없음: $RECIPIENT_FILE"; exit 2; }
+
+# ── keys: sealed-secrets 마스터 키 전부를 암호화해 내보내기 ──
+if [ "$CMD" = "keys" ]; then
+  # 평문은 변수(메모리)에만 — 디스크·로그에 남기지 않는다
+  BUNDLE_JSON=$(kubectl -n sealed-secrets get secret -l sealedsecrets.bitnami.com/sealed-secrets-key -o json \
+    | python3 -I -c '
+import json, sys
+src = json.load(sys.stdin)["items"]
+if not src: sys.exit("키 없음")
+items = []
+for s in src:
+    m = s["metadata"]
+    if not s.get("data", {}).get("tls.key") or not s.get("data", {}).get("tls.crt"):
+        sys.exit("tls.key/tls.crt 없는 키: " + m["name"])
+    items.append({"apiVersion": "v1", "kind": "Secret", "type": s["type"],
+                  "metadata": {"name": m["name"], "namespace": m["namespace"],
+                               "labels": m.get("labels", {}),
+                               "annotations": {"clog/original-creationTimestamp": m["creationTimestamp"]}},
+                  "data": {"tls.crt": s["data"]["tls.crt"], "tls.key": s["data"]["tls.key"]}})
+items.sort(key=lambda i: i["metadata"]["annotations"]["clog/original-creationTimestamp"])
+print(json.dumps({"apiVersion": "v1", "kind": "List", "items": items}))')
+  COUNT=$(printf '%s' "$BUNDLE_JSON" | python3 -I -c 'import json,sys; print(len(json.load(sys.stdin)["items"]))')
+  NEWEST_ISO=$(printf '%s' "$BUNDLE_JSON" | python3 -I -c 'import json,sys; print(json.load(sys.stdin)["items"][-1]["metadata"]["annotations"]["clog/original-creationTimestamp"])')
+  BUNDLE="sealed-keys-$COUNT-$(date -u -d "$NEWEST_ISO" +%Y%m%d-%H%M%S)"
+  # here-string(<<<)은 64KB 를 넘으면 bash 가 임시 파일을 쓰므로 항상 파이프로
+  printf '%s' "$BUNDLE_JSON" | age -R "$RECIPIENT_FILE"
+  unset BUNDLE_JSON
+  mkdir -p "$LOG_DIR"
+  echo "$(date -u +%FT%TZ) keys bundle=$BUNDLE count=$COUNT client=$CLIENT" >> "$LOG_DIR/exports.log"
+  log "keys=$COUNT bundle=$BUNDLE"
+  exit 0
+fi
 
 TMP=$(mktemp -d)
 trap 'rm -rf "$TMP"' EXIT
