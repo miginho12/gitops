@@ -79,6 +79,35 @@ spec:
             summary: "DB 백업 외부 복제 지표 없음"
             description: "clog_backup_replica_last_success_timestamp_seconds 가 1시간째 없음. /var/lib/node_exporter/textfile_collector/clog_backup_replica.prom 과 node-exporter --collector.textfile.directory 확인."
 
+        # sealed-secrets 마스터 키 외부 백업 (2026-11-09, 감사 H4). 컨트롤러가 30일마다 새 키를 만들므로
+        # "클러스터의 최신 키(kube-state-metrics) > 노트북 번들의 최신 키(ack textfile)" 가 72h 지속되면 알림.
+        # 키 하나라도 빠지면 그 키로 봉인된 SealedSecret 은 복구 불가(11-09 실측: 18개 전부 첫 키로 봉인 —
+        # 최신 키만 있으면 0/18). 노트북이 매일 keys → 검증 → ack-keys (scripts/backup-export.sh).
+        - alert: ClogSealedKeysBackupStale
+          expr: |
+            (time() - max(kube_secret_created{namespace="sealed-secrets", secret=~"sealed-secrets-key.+"}) > 72 * 3600)
+            and on ()
+            (max(kube_secret_created{namespace="sealed-secrets", secret=~"sealed-secrets-key.+"})
+              > max(clog_sealed_keys_backup_newest_key_timestamp_seconds))
+          for: 10m
+          labels:
+            severity: warning
+            category: infra
+          annotations:
+            summary: "sealed-secrets 새 마스터 키가 72시간 넘게 외부 백업 안 됨"
+            description: "가장 최신 키가 만들어진 지 {{`{{ $value | humanizeDuration }}`}} 지났지만 노트북 번들에 없음. 노트북 pull.log 의 KEYS 줄과 Pi exports.log 의 keys/ack-keys 확인."
+
+        - alert: ClogSealedKeysBackupMetricMissing
+          expr: |
+            absent(clog_sealed_keys_backup_newest_key_timestamp_seconds)
+          for: 1h
+          labels:
+            severity: warning
+            category: infra
+          annotations:
+            summary: "sealed-secrets 키 백업 지표 없음"
+            description: "clog_sealed_keys_backup_newest_key_timestamp_seconds 가 1시간째 없음. /var/lib/node_exporter/textfile_collector/clog_sealed_keys_backup.prom 확인."
+
 # ── 클로그 서비스 알람 (category=service) ──
 ---
 apiVersion: monitoring.coreos.com/v1

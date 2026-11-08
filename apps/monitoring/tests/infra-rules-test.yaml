@@ -40,3 +40,59 @@ tests:
             exp_annotations:
               summary: "DB 백업 외부 복제 지표 없음"
               description: "clog_backup_replica_last_success_timestamp_seconds 가 1시간째 없음. /var/lib/node_exporter/textfile_collector/clog_backup_replica.prom 과 node-exporter --collector.textfile.directory 확인."
+
+  # ── ClogSealedKeysBackupStale / MetricMissing (H4) ──
+  # 옛 키 생성 t=0, 새 키 t=1d 에 생성, 노트북 번들은 계속 옛 키(0)까지만 → 새 키 + 72h = 96h 초과, for 10m
+  - interval: 1m
+    input_series:
+      - series: 'kube_secret_created{namespace="sealed-secrets",secret="sealed-secrets-keyold"}'
+        values: '0x6000'
+      - series: 'kube_secret_created{namespace="sealed-secrets",secret="sealed-secrets-keynew"}'
+        values: '_x1440 86400x4560'
+      - series: 'clog_sealed_keys_backup_newest_key_timestamp_seconds'
+        values: '0x6000'
+    alert_rule_test:
+      - {eval_time: 95h,   alertname: ClogSealedKeysBackupStale, exp_alerts: []}   # 새 키 후 71h
+      - {eval_time: 96h5m, alertname: ClogSealedKeysBackupStale, exp_alerts: []}   # 넘었지만 for 10m 대기
+      - eval_time: 96h15m
+        alertname: ClogSealedKeysBackupStale
+        exp_alerts:
+          - exp_labels: {severity: warning, category: infra}
+            exp_annotations:
+              summary: "sealed-secrets 새 마스터 키가 72시간 넘게 외부 백업 안 됨"
+              description: "가장 최신 키가 만들어진 지 3d 0h 15m 0s 지났지만 노트북 번들에 없음. 노트북 pull.log 의 KEYS 줄과 Pi exports.log 의 keys/ack-keys 확인."
+      - {eval_time: 96h15m, alertname: ClogSealedKeysBackupMetricMissing, exp_alerts: []}
+  # 새 키가 하루 뒤(t=2d) 백업됨 → 안 울림
+  - interval: 1m
+    input_series:
+      - series: 'kube_secret_created{namespace="sealed-secrets",secret="sealed-secrets-keyold"}'
+        values: '0x6000'
+      - series: 'kube_secret_created{namespace="sealed-secrets",secret="sealed-secrets-keynew"}'
+        values: '_x1440 86400x4560'
+      - series: 'clog_sealed_keys_backup_newest_key_timestamp_seconds'
+        values: '0x2880 86400x3120'
+    alert_rule_test:
+      - {eval_time: 100h, alertname: ClogSealedKeysBackupStale, exp_alerts: []}
+  # 새 키 없음 — 최신 키가 아무리 오래돼도 번들에 있으면 안 울림 (시간 조건만 있으면 매달 오탐)
+  - interval: 1m
+    input_series:
+      - series: 'kube_secret_created{namespace="sealed-secrets",secret="sealed-secrets-keyold"}'
+        values: '0x7000'
+      - series: 'clog_sealed_keys_backup_newest_key_timestamp_seconds'
+        values: '0x7000'
+    alert_rule_test:
+      - {eval_time: 110h, alertname: ClogSealedKeysBackupStale, exp_alerts: []}
+  # 지표 없음 → 1h 뒤 Missing
+  - interval: 1m
+    input_series:
+      - series: 'kube_secret_created{namespace="sealed-secrets",secret="sealed-secrets-keyold"}'
+        values: '0x100'
+    alert_rule_test:
+      - {eval_time: 50m, alertname: ClogSealedKeysBackupMetricMissing, exp_alerts: []}
+      - eval_time: 61m
+        alertname: ClogSealedKeysBackupMetricMissing
+        exp_alerts:
+          - exp_labels: {severity: warning, category: infra}
+            exp_annotations:
+              summary: "sealed-secrets 키 백업 지표 없음"
+              description: "clog_sealed_keys_backup_newest_key_timestamp_seconds 가 1시간째 없음. /var/lib/node_exporter/textfile_collector/clog_sealed_keys_backup.prom 확인."
