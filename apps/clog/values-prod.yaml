@@ -21,6 +21,11 @@ env:
   ENVIRONMENT: prod
   LOG_LEVEL: INFO
 
+  # 2026-11-09 (감사 H3): uvicorn 이 클러스터 내부(nginx Pod) 피어의 X-Forwarded-For 를 신뢰
+  # → request.client = 실제 클라이언트 IP(nginx 가 CF-Connecting-IP 로 복원해 덮어씀,
+  # frontend 7a1e2e7). 10.42.0.0/16 = k3s cluster-cidr. dev 23fb7a1 에서 검증.
+  FORWARDED_ALLOW_IPS: "10.42.0.0/16"
+
   # DB
   DB_HOST: postgres-prod.prod.svc.cluster.local
   DB_PORT: "5432"
