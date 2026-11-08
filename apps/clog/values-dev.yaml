@@ -13,6 +13,12 @@ env:
   ENVIRONMENT: dev
   LOG_LEVEL: DEBUG
 
+  # 2026-11-09 (감사 H3): uvicorn 이 클러스터 내부(nginx Pod) 피어가 보낸 X-Forwarded-For 를
+  # 신뢰해 request.client = 실제 클라이언트 IP → rate limit 키가 사용자별로 분리된다.
+  # nginx(frontend 7a1e2e7)가 XFF 를 복원된 IP 하나로 덮어쓰는 것이 전제 — nginx 먼저 배포.
+  # 10.42.0.0/16 = k3s cluster-cidr. Prometheus·kubelet probe 는 XFF 가 없어 영향 없음.
+  FORWARDED_ALLOW_IPS: "10.42.0.0/16"
+
   # 2026-07-19: 프론트 리디자인 작업 중 로컬 vite dev 서버(다른 기기에서 미리보기)를
   # 허용하기 위해 LAN/tailnet 오리진 추가. 라즈베리파이 고정 IP + tailscale IP.
   CORS_ORIGINS: '["http://localhost:3000","https://clog.tail099985.ts.net","http://192.168.123.105:5173","http://100.96.195.103:5173"]'
