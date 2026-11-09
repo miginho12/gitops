@@ -11,7 +11,7 @@
 replicaCount: 2
 
 image:
-  tag: "sha-1fcb374"  # dev에서 검증된 태그를 그대로 승격 — refresh 회전 대비(새 refresh 저장·회전 헤더·탭 경쟁, 감사 M2 ①). 이전 7a1e2e7: 실제 IP 전달(H3), 2026-11-09
+  tag: "sha-82b693a"  # dev에서 검증된 태그를 그대로 승격 — 로그아웃 시 서버 refresh 폐기(/auth/logout, 감사 M13). 이전 1fcb374: refresh 회전 대비(M2 ①), 2026-11-09
   pullPolicy: IfNotPresent
 
 service:
