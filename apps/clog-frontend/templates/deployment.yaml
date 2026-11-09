@@ -51,6 +51,15 @@ spec:
             periodSeconds: 10
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
+          {{- if .Values.preStopSleepSeconds }}
+          # 무중단 롤아웃 (2026-11-09, 감사 M9): 종료 Pod 로 새 연결이 가던 틈을 막는다
+          # (dev 기준선 1,016회 중 4회 연결 실패, prod H2 롤아웃 1/120). nginx 는 SIGQUIT 으로
+          # 진행 중 요청은 마치므로, SIGTERM 전 대기만 있으면 된다.
+          lifecycle:
+            preStop:
+              sleep:
+                seconds: {{ .Values.preStopSleepSeconds }}
+          {{- end }}
       {{- with .Values.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}

@@ -3,6 +3,9 @@
 
 replicaCount: 1
 
+# 종료 전 대기(초) — endpoints 에서 먼저 빠지도록 (감사 M9, 2026-11-09). 0 이면 preStop 없음
+preStopSleepSeconds: 5
+
 image:
   repository: ghcr.io/miginho12/clog-frontend
   pullPolicy: IfNotPresent

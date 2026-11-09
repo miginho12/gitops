@@ -63,6 +63,16 @@ spec:
           {{- end }}
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
+          {{- if .Values.preStopSleepSeconds }}
+          # 무중단 롤아웃 (2026-11-09, 감사 M9): 종료 시작 → endpoints 제거·kube-proxy 갱신 사이에
+          # 들어온 새 연결이 이미 리슨을 멈춘 uvicorn 으로 가 502(Connection refused)가 났다
+          # (dev 기준선 1,020회 중 5회, prod M1 롤아웃 1/105). SIGTERM 전에 잠깐 기다려
+          # 트래픽이 먼저 빠지게 한다. k8s 1.35 네이티브 sleep 액션 — 이미지에 sleep 불필요.
+          lifecycle:
+            preStop:
+              sleep:
+                seconds: {{ .Values.preStopSleepSeconds }}
+          {{- end }}
       {{- with .Values.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}

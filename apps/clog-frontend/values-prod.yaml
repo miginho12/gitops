@@ -6,6 +6,10 @@
 # 2026-07-30: 공개 도메인이 climb-log.com(Cloudflare Tunnel)으로 전환됨 —
 # NodePort(30083) 자체는 그대로, 그 앞단 공개 경로만 바뀜.
 
+# 2026-11-09 (감사 M9): 단일 Pod 였다 — Pod 하나가 죽거나 재시작되면 사이트 전체 다운.
+# nginx 는 limit 128Mi·200m 라 하나 더 띄워도 노드 부담 작음.
+replicaCount: 2
+
 image:
   tag: "sha-7a1e2e7"  # dev에서 검증된 태그를 그대로 승격 — 실제 클라이언트 IP 전달(realip CF-Connecting-IP + XFF 덮어쓰기, 감사 H3). 이전 bb79646: /api/metrics 차단(H2), 2026-11-09
   pullPolicy: IfNotPresent
