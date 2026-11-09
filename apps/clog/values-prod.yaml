@@ -8,7 +8,7 @@
 replicaCount: 2
 
 image:
-  tag: "sha-5307165"  # dev 검증 태그 승격 — refresh token 회전 + 재사용 감지(ADR-076, 회전 헤더 opt-in, 마이그레이션 없음, 2026-11-09)
+  tag: "sha-43e0878"  # dev 검증 태그 승격 — refresh 항상 회전(ADR-076 ③, 헤더 opt-in 제거, 마이그레이션 없음, 2026-11-10). 이전 5307165: 회전+재사용 감지(헤더 opt-in)
   pullPolicy: IfNotPresent
 
 # 내부 전용 NodePort (dev의 30080/30081과 겹치지 않게 30082)
