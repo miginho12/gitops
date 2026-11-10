@@ -189,7 +189,7 @@ rclone_pod() {
   ov=$(cat <<EOF
 {"spec":{"restartPolicy":"Never","containers":[{"name":"r","image":"$RCLONE_IMAGE","imagePullPolicy":"IfNotPresent","args":$1,
 "resources":{"limits":{"cpu":"200m","memory":"128Mi"},"requests":{"cpu":"50m","memory":"32Mi"}},
-"env":[{"name":"RCLONE_CONFIG","value":"/dev/null"},{"name":"RCLONE_CONFIG_BACKUP_TYPE","value":"s3"},{"name":"RCLONE_CONFIG_BACKUP_PROVIDER","value":"Minio"},{"name":"RCLONE_CONFIG_BACKUP_ENDPOINT","value":"http://minio.dev.svc.cluster.local:9000"},
+"env":[{"name":"RCLONE_CONFIG","value":"/dev/null"},{"name":"RCLONE_CONFIG_BACKUP_TYPE","value":"s3"},{"name":"RCLONE_CONFIG_BACKUP_PROVIDER","value":"Minio"},{"name":"RCLONE_CONFIG_BACKUP_ENDPOINT","value":"http://minio.storage.svc.cluster.local:9000"},
 {"name":"RCLONE_CONFIG_BACKUP_ACCESS_KEY_ID","valueFrom":{"secretKeyRef":{"name":"minio-clog-credentials","key":"MINIO_ACCESS_KEY"}}},
 {"name":"RCLONE_CONFIG_BACKUP_SECRET_ACCESS_KEY","valueFrom":{"secretKeyRef":{"name":"minio-clog-credentials","key":"MINIO_SECRET_KEY"}}}]}]}}
 EOF

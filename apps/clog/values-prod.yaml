@@ -54,8 +54,8 @@ env:
   KAKAO_REDIRECT_URI: "https://climb-log.com/api/auth/kakao/callback"
   FRONTEND_URL: "https://climb-log.com"
 
-  # MinIO — dev와 공유 인스턴스, 버킷만 분리 (리소스 제약 하 트레이드오프)
-  MINIO_ENDPOINT: "minio.dev.svc.cluster.local:9000"
+  # MinIO — dev와 공유 인스턴스(storage 네임스페이스, 수동 sync), 버킷·사용자·정책만 분리 (리소스 제약 하 트레이드오프)
+  MINIO_ENDPOINT: "minio.storage.svc.cluster.local:9000"   # 2026-11-10 감사 M4: MinIO 는 storage 네임스페이스
   MINIO_BUCKET: "clog-media-prod"
   MINIO_SECURE: "true"
   MINIO_PUBLIC_ENDPOINT: "climb-log.com"

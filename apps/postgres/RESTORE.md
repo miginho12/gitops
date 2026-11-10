@@ -9,7 +9,7 @@
 |---|---|
 | 방식 | CronJob `postgres-<env>-backup`: `pg_dump \| gzip` (평문 SQL) → rclone → MinIO |
 | 주기 | 매일 03:00 KST (UTC 18:00) |
-| 위치 | MinIO `minio.dev.svc.cluster.local:9000` — prod `clog-backups-prod`, dev `clog-backups` |
+| 위치 | MinIO `minio.storage.svc.cluster.local:9000` — prod `clog-backups-prod`, dev `clog-backups` |
 | 보관 | 7일 (`rclone delete --min-age 7d`) |
 | 파일명 | `postgres-prod-clog_dev-YYYYMMDD-HHMMSS.sql.gz` (prod DB 이름도 `clog_dev`) |
 | RPO | 최대 24시간 |
@@ -46,7 +46,7 @@ D=$(mktemp -d); chmod 700 $D; umask 077
 
 OV='{"spec":{"restartPolicy":"Never","containers":[{"name":"r","image":"rclone/rclone:1.71.1","imagePullPolicy":"IfNotPresent","args":["cat","backup:'$BUCKET'/'$FILE'"],
 "resources":{"limits":{"cpu":"200m","memory":"128Mi"},"requests":{"cpu":"50m","memory":"32Mi"}},
-"env":[{"name":"RCLONE_CONFIG","value":"/dev/null"},{"name":"RCLONE_CONFIG_BACKUP_TYPE","value":"s3"},{"name":"RCLONE_CONFIG_BACKUP_PROVIDER","value":"Minio"},{"name":"RCLONE_CONFIG_BACKUP_ENDPOINT","value":"http://minio.dev.svc.cluster.local:9000"},
+"env":[{"name":"RCLONE_CONFIG","value":"/dev/null"},{"name":"RCLONE_CONFIG_BACKUP_TYPE","value":"s3"},{"name":"RCLONE_CONFIG_BACKUP_PROVIDER","value":"Minio"},{"name":"RCLONE_CONFIG_BACKUP_ENDPOINT","value":"http://minio.storage.svc.cluster.local:9000"},
 {"name":"RCLONE_CONFIG_BACKUP_ACCESS_KEY_ID","valueFrom":{"secretKeyRef":{"name":"minio-clog-credentials","key":"MINIO_ACCESS_KEY"}}},
 {"name":"RCLONE_CONFIG_BACKUP_SECRET_ACCESS_KEY","valueFrom":{"secretKeyRef":{"name":"minio-clog-credentials","key":"MINIO_SECRET_KEY"}}}]}]}}'
 

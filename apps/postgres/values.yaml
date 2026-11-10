@@ -80,7 +80,9 @@ backup:
     tag: "1.71.1"
     pullPolicy: IfNotPresent
   minio:
-    endpoint: "minio:9000"
+    # 2026-11-10 (감사 M4): MinIO 가 storage 네임스페이스로 이전 — 짧은 이름(minio:9000)은
+    # 릴리스 네임스페이스로 풀리므로 FQDN 고정 (dev·prod 공통, prod override 불필요)
+    endpoint: "minio.storage.svc.cluster.local:9000"
     bucket: "clog-backups"
     # 2026-07-17: root 계정 대신 버킷 스코프 전용 사용자(clog-dev)로 최소권한 전환
     secretName: minio-clog-credentials
