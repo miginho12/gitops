@@ -49,6 +49,15 @@ app.kubernetes.io/instance: {{ .Release.Name }}
 {{- end }}
 
 {{/*
+API(웹) Pod 전용 selector (감사 M12) — worker·CronJob Pod 는 component 가 달라 제외된다.
+Deployment selector 는 immutable 이라 바꿀 때는 orphan 삭제 후 재생성 (gitops 커밋 메시지 참고).
+*/}}
+{{- define "clog.apiSelectorLabels" -}}
+{{ include "clog.selectorLabels" . }}
+app.kubernetes.io/component: api
+{{- end }}
+
+{{/*
 ServiceAccount name
 */}}
 {{- define "clog.serviceAccountName" -}}
