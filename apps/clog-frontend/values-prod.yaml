@@ -11,7 +11,7 @@
 replicaCount: 2
 
 image:
-  tag: "sha-87e531e"  # dev에서 검증된 태그를 그대로 승격 — ErrorBoundary + 코드 분할 + 옛 청크 자동 새로고침(감사 M6, 2026-11-10). 이전 0454e59: MinIO storage 주소(M4)
+  tag: "sha-3d0e630"  # dev에서 검증된 태그를 그대로 승격 — 새 버전 감지(배너+다음 이동 때 적용, 빌드 ID=커밋 SHA, 감사 M7, 2026-11-10). 이전 87e531e: ErrorBoundary·코드 분할(M6)
   pullPolicy: IfNotPresent
 
 service:
