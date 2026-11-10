@@ -8,7 +8,7 @@
 replicaCount: 2
 
 image:
-  tag: "sha-b7f7a4d"  # dev 검증 태그 승격 — MinIO storage 네임스페이스 이전(감사 M4, config 기본값·로컬 compose 만 변경, 2026-11-10). 이전 41335d2: CSP 위반 보고(M3)
+  tag: "sha-3459460"  # dev 검증 태그 승격 — 앱 카카오 로그인 일회용 코드+PKCE(감사 M14, 웹 흐름 불변, 2026-11-11). 이전 b7f7a4d: MinIO storage 이전(M4)
   pullPolicy: IfNotPresent
 
 # 내부 전용 NodePort (dev의 30080/30081과 겹치지 않게 30082)
