@@ -207,12 +207,21 @@ loki:
           index:
             prefix: loki_index_
             period: 24h
-    # 48h 로 적어 뒀지만 compactor retention_enabled 가 없어 실제로는 삭제되지 않음
-    # (2026-11-03 기준 3.1GB, 35일 전 로그 조회됨). 적용하려면 compactor 설정 필요.
+    # 보존 7일 (2026-11-10, 감사 M5 — Prometheus 와 동일, 장애 추적 기준).
+    # 이전엔 retention_period 만 있고 compactor retention_enabled 가 없어 한 번도 삭제되지 않았다
+    # (11-10 기준 chunks 3.2GB 중 7일 초과 3.0GB). local-path PV 의 20Gi 는 강제되지 않는 값이라
+    # 실제 상한은 노드 디스크 전체 → 보존 삭제가 유일한 보호. 동작 여부는 LokiCompactorNotRunning 알림이 본다.
     limits_config:
-      retention_period: 48h
+      retention_period: 168h
       reject_old_samples: true
       reject_old_samples_max_age: 48h
+    compactor:
+      working_directory: /var/loki/compactor
+      compaction_interval: 10m
+      retention_enabled: true
+      retention_delete_delay: 2h          # 삭제 표시 후 실제 삭제까지 유예
+      retention_delete_worker_count: 50   # 기본 150 — Pi 부하 완화
+      delete_request_store: filesystem    # retention_enabled 시 필수(Loki 3.x)
   
   singleBinary:
     replicas: 1
@@ -243,10 +252,12 @@ loki:
   monitoring:
     selfMonitoring:
       enabled: false
-    lokiCanary:
-      enabled: false
     serviceMonitor:
       enabled: true   # Prometheus 가 Loki 자신도 수집
+  # loki-6.x 에서 canary 키는 최상위(lokiCanary) — monitoring.lokiCanary 에 두면 무시돼 144일간
+  # DaemonSet 이 떠서 시간당 ~1천 줄을 Loki 에 써 왔다 (2026-11-10, 감사 M5 에서 발견·정정).
+  lokiCanary:
+    enabled: false
   test:
     enabled: false
 
