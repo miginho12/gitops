@@ -11,7 +11,7 @@
 replicaCount: 2
 
 image:
-  tag: "sha-0454e59"  # dev에서 검증된 태그를 그대로 승격 — MinIO 프록시 대상 storage 네임스페이스(감사 M4, 2026-11-10). 이전 8492c11: 보안 헤더 + CSP Report-Only(M3)
+  tag: "sha-87e531e"  # dev에서 검증된 태그를 그대로 승격 — ErrorBoundary + 코드 분할 + 옛 청크 자동 새로고침(감사 M6, 2026-11-10). 이전 0454e59: MinIO storage 주소(M4)
   pullPolicy: IfNotPresent
 
 service:
