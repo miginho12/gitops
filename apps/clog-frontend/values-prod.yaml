@@ -11,7 +11,7 @@
 replicaCount: 2
 
 image:
-  tag: "sha-3d0e630"  # dev에서 검증된 태그를 그대로 승격 — 새 버전 감지(배너+다음 이동 때 적용, 빌드 ID=커밋 SHA, 감사 M7, 2026-11-10). 이전 87e531e: ErrorBoundary·코드 분할(M6)
+  tag: "sha-2067db0"  # dev에서 검증된 태그를 그대로 승격 — 앱 카카오 로그인 시스템 브라우저+앱 복귀(감사 M14, 웹 흐름 불변, 2026-11-11). 이전 3d0e630: 새 버전 감지(M7)
   pullPolicy: IfNotPresent
 
 service:
