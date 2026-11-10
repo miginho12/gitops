@@ -97,10 +97,12 @@ tests:
               summary: "sealed-secrets 키 백업 지표 없음"
               description: "clog_sealed_keys_backup_newest_key_timestamp_seconds 가 1시간째 없음. /var/lib/node_exporter/textfile_collector/clog_sealed_keys_backup.prom 확인."
   # ── LokiCompactorNotRunning / MetricMissing (M5) ──
-  # 마지막 성공 시각이 0 에 고정(이후 실행 실패) → 3h 초과 + for 15m 뒤 발화
+  # 프로세스는 t=0 에 시작, 보존 적용 성공이 한 번도 없음(지표 0) → 뜬 지 3h 초과 + for 15m
   - interval: 1m
     input_series:
-      - series: 'loki_boltdb_shipper_compact_tables_operation_last_successful_run_timestamp_seconds{job="monitoring/monitoring-loki"}'
+      - series: 'loki_compactor_apply_retention_last_successful_run_timestamp_seconds{job="monitoring/monitoring-loki"}'
+        values: '0x300'
+      - series: 'process_start_time_seconds{job="monitoring/monitoring-loki"}'
         values: '0x300'
     alert_rule_test:
       - {eval_time: 3h,    alertname: LokiCompactorNotRunning, exp_alerts: []}
@@ -110,16 +112,19 @@ tests:
         exp_alerts:
           - exp_labels: {severity: warning, category: infra}
             exp_annotations:
-              summary: "Loki compactor 가 3시간 넘게 성공하지 못함 — 보존 삭제 멈춤"
-              description: "마지막 성공 실행 후 3h 20m 0s 지남. 오래된 로그가 지워지지 않아 디스크가 계속 찬다. kubectl -n monitoring logs monitoring-loki-0 -c loki | grep compactor 확인."
+              summary: "Loki 보존 적용이 3시간 넘게 성공하지 못함 — 오래된 로그 삭제 멈춤"
+              description: "마지막 보존 적용 성공 후 3시간 넘게 지남. 오래된 로그가 지워지지 않아 디스크가 계속 찬다. kubectl -n monitoring logs monitoring-loki-0 -c loki | grep compactor 확인."
       - {eval_time: 3h20m, alertname: LokiCompactorMetricMissing, exp_alerts: []}
-  # 10분마다 성공 → 안 울림
+  # 재시작: t=10h 에 새로 뜸 → 지표 0 으로 초기화, 20분 뒤부터 10분마다 성공 → 안 울림 (재시작 오탐 방지)
   - interval: 10m
     input_series:
-      - series: 'loki_boltdb_shipper_compact_tables_operation_last_successful_run_timestamp_seconds{job="monitoring/monitoring-loki"}'
-        values: '0+600x60'
+      - series: 'loki_compactor_apply_retention_last_successful_run_timestamp_seconds{job="monitoring/monitoring-loki"}'
+        values: '0+600x59 0 0 37200+600x40'
+      - series: 'process_start_time_seconds{job="monitoring/monitoring-loki"}'
+        values: '0x59 36000x42'
     alert_rule_test:
-      - {eval_time: 9h, alertname: LokiCompactorNotRunning, exp_alerts: []}
+      - {eval_time: 10h15m, alertname: LokiCompactorNotRunning, exp_alerts: []}
+      - {eval_time: 13h30m, alertname: LokiCompactorNotRunning, exp_alerts: []}
   # 지표 없음 → 1h 뒤 Missing
   - interval: 1m
     input_series:
@@ -133,4 +138,42 @@ tests:
           - exp_labels: {severity: warning, category: infra}
             exp_annotations:
               summary: "Loki compactor 지표 없음"
-              description: "loki_boltdb_shipper_compact_tables_operation_last_successful_run_timestamp_seconds 가 1시간째 없음. Loki 스크레이프(up{job=\"monitoring/monitoring-loki\"}) 또는 compactor 설정 확인."
+              description: "loki_compactor_apply_retention_last_successful_run_timestamp_seconds 가 1시간째 없음. Loki 스크레이프(up{job=\"monitoring/monitoring-loki\"}) 또는 compactor 설정 확인."
+  # ── ClogLogBackupStale / MetricMissing (M5) ──
+  # 가장 최근 날 = 0 (UTC 00:00) 고정, 이후 pull 없음 → 4일 초과 + for 10m
+  - interval: 1m   # node-exporter 는 매 스크레이프 노출 — 5m lookback 보다 긴 간격이면 pending 이 끊긴다
+    input_series:
+      - series: 'clog_log_backup_newest_day_timestamp_seconds'
+        values: '0x6000'
+    alert_rule_test:
+      - {eval_time: 96h,    alertname: ClogLogBackupStale, exp_alerts: []}
+      - {eval_time: 96h10m, alertname: ClogLogBackupStale, exp_alerts: []}   # 넘었지만 for 10m 대기
+      - eval_time: 96h20m
+        alertname: ClogLogBackupStale
+        exp_alerts:
+          - exp_labels: {severity: warning, category: infra}
+            exp_annotations:
+              summary: "prod 로그 외부 백업이 4일 넘게 멈춤 — Loki 보존(7일) 전에 받아야 함"
+              description: "노트북에 있는 가장 최근 로그 날짜가 4d 0h 20m 0s 전. 노트북 pull.log 의 LOGS 줄과 Pi exports.log 의 logs/ack-logs 확인."
+      - {eval_time: 96h20m, alertname: ClogLogBackupMetricMissing, exp_alerts: []}
+  # 매일 하루씩 전진 → 안 울림
+  - interval: 1m
+    input_series:
+      - series: 'clog_log_backup_newest_day_timestamp_seconds'
+        values: '0x1440 86400x1440 172800x1440 259200x1440 345600x1440 432000x1440'
+    alert_rule_test:
+      - {eval_time: 140h, alertname: ClogLogBackupStale, exp_alerts: []}
+  # 지표 없음 → 1h 뒤 Missing
+  - interval: 1m
+    input_series:
+      - series: 'up{job="node-exporter"}'
+        values: '1x100'
+    alert_rule_test:
+      - {eval_time: 50m, alertname: ClogLogBackupMetricMissing, exp_alerts: []}
+      - eval_time: 61m
+        alertname: ClogLogBackupMetricMissing
+        exp_alerts:
+          - exp_labels: {severity: warning, category: infra}
+            exp_annotations:
+              summary: "prod 로그 백업 지표 없음"
+              description: "clog_log_backup_newest_day_timestamp_seconds 가 1시간째 없음. /var/lib/node_exporter/textfile_collector/clog_log_backup.prom 확인."

@@ -108,31 +108,59 @@ spec:
             summary: "sealed-secrets 키 백업 지표 없음"
             description: "clog_sealed_keys_backup_newest_key_timestamp_seconds 가 1시간째 없음. /var/lib/node_exporter/textfile_collector/clog_sealed_keys_backup.prom 확인."
 
+        # ── prod 로그 외부 백업 (2026-11-10, 감사 M5) ──
+        # 노트북이 매일 어제(UTC) 로그를 받아 ack → newest_day 는 평소 1~2일 전. Loki 보존이 7일이라
+        # 4일이면 아직 받을 수 있는 날이 남아 있을 때 알린다 (노트북 pull.log 의 LOGS 줄 확인).
+        - alert: ClogLogBackupStale
+          expr: |
+            time() - max(clog_log_backup_newest_day_timestamp_seconds) > 4 * 86400
+          for: 10m
+          labels:
+            severity: warning
+            category: infra
+          annotations:
+            summary: "prod 로그 외부 백업이 4일 넘게 멈춤 — Loki 보존(7일) 전에 받아야 함"
+            description: "노트북에 있는 가장 최근 로그 날짜가 {{`{{ $value | humanizeDuration }}`}} 전. 노트북 pull.log 의 LOGS 줄과 Pi exports.log 의 logs/ack-logs 확인."
+
+        - alert: ClogLogBackupMetricMissing
+          expr: |
+            absent(clog_log_backup_newest_day_timestamp_seconds)
+          for: 1h
+          labels:
+            severity: warning
+            category: infra
+          annotations:
+            summary: "prod 로그 백업 지표 없음"
+            description: "clog_log_backup_newest_day_timestamp_seconds 가 1시간째 없음. /var/lib/node_exporter/textfile_collector/clog_log_backup.prom 확인."
+
         # ── Loki 보존 삭제 동작 감시 (2026-11-10, 감사 M5) ──
         # 보존 삭제는 compactor 실행(10분 주기) 안에서 일어난다. 설정만 있고 실제로 안 지워지던 상태가
         # 144일간 아무도 모르게 지속됐다 → "마지막 성공 실행" 이 3시간 넘게 멈추면 알린다.
         # local-path PV 의 20Gi 는 강제되지 않아 Loki 는 노드 디스크를 끝까지 쓸 수 있다(HighDiskUsage 가 최후 방어선).
         - alert: LokiCompactorNotRunning
+          # 재시작 직후엔 지표가 0 → 뜬 지 3h 넘은 경우만 판정 (0 이 계속이면 그때 울림)
           expr: |
-            time() - max(loki_boltdb_shipper_compact_tables_operation_last_successful_run_timestamp_seconds) > 3 * 3600
+            (time() - max(loki_compactor_apply_retention_last_successful_run_timestamp_seconds) > 3 * 3600)
+            and on ()
+            (time() - max(process_start_time_seconds{job="monitoring/monitoring-loki"}) > 3 * 3600)
           for: 15m
           labels:
             severity: warning
             category: infra
           annotations:
-            summary: "Loki compactor 가 3시간 넘게 성공하지 못함 — 보존 삭제 멈춤"
-            description: "마지막 성공 실행 후 {{`{{ $value | humanizeDuration }}`}} 지남. 오래된 로그가 지워지지 않아 디스크가 계속 찬다. kubectl -n monitoring logs monitoring-loki-0 -c loki | grep compactor 확인."
+            summary: "Loki 보존 적용이 3시간 넘게 성공하지 못함 — 오래된 로그 삭제 멈춤"
+            description: "마지막 보존 적용 성공 후 3시간 넘게 지남. 오래된 로그가 지워지지 않아 디스크가 계속 찬다. kubectl -n monitoring logs monitoring-loki-0 -c loki | grep compactor 확인."
 
         - alert: LokiCompactorMetricMissing
           expr: |
-            absent(loki_boltdb_shipper_compact_tables_operation_last_successful_run_timestamp_seconds)
+            absent(loki_compactor_apply_retention_last_successful_run_timestamp_seconds)
           for: 1h
           labels:
             severity: warning
             category: infra
           annotations:
             summary: "Loki compactor 지표 없음"
-            description: "loki_boltdb_shipper_compact_tables_operation_last_successful_run_timestamp_seconds 가 1시간째 없음. Loki 스크레이프(up{job=\"monitoring/monitoring-loki\"}) 또는 compactor 설정 확인."
+            description: "loki_compactor_apply_retention_last_successful_run_timestamp_seconds 가 1시간째 없음. Loki 스크레이프(up{job=\"monitoring/monitoring-loki\"}) 또는 compactor 설정 확인."
 
 # ── 클로그 서비스 알람 (category=service) ──
 ---

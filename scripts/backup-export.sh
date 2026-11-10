@@ -24,6 +24,15 @@
 #             age 암호화해 stdout. stderr = "keys=<개수> bundle=sealed-keys-<개수>-<최신키 UTC>"
 #   ack-keys: 노트북 검증 후 지표 갱신 → ClogSealedKeysBackupStale(새 키가 72h 안에 백업 안 됨)
 #   평문 키는 디스크에 쓰지 않는다(파이프로만 age 에 전달).
+#
+# logs / ack-logs <YYYY-MM-DD>: prod 로그 외부 백업 (2026-11-10, 감사 M5)
+#   Loki 보존은 7일 → 그 전에 하루(UTC) 단위로 노트북에 사본(90일 보관). Pi 에 파일을 만들지 않고
+#   요청 때 Loki 에서 바로 뽑는다(scripts/loki-day-export.py) → 노트북이 며칠 꺼져 있어도 6일 안이면 따라잡음.
+#   logs    : 그 날 {namespace="prod"} 전부를 NDJSON → gzip → age 로 stdout.
+#             stderr = "logs day=<날짜> lines=<n> raw=<bytes>". Loki 집계와 줄 수가 다르면 실패.
+#             허용 범위: 6일 전 ~ 어제 (오늘은 아직 안 끝났고, 7일 전은 보존 삭제와 겹친다)
+#   ack-logs: 노트북 검증 후 지표 갱신 → ClogLogBackupStale
+#   로그에는 IP·user_id 가 있어 평문은 디스크에 쓰지 않는다(파이프로만 age 에 전달).
 
 set -euo pipefail
 export PATH=/usr/local/bin:/usr/bin:/bin
@@ -35,7 +44,7 @@ umask 077
 NS="${NS:-prod}"
 BUCKET="${BUCKET:-clog-backups-prod}"
 MAX_AGE_HOURS="${MAX_AGE_HOURS:-48}"
-RECIPIENT_FILE="$HOME/.config/clog-backup/recipient"
+RECIPIENT_FILE="${RECIPIENT_FILE:-$HOME/.config/clog-backup/recipient}"   # 테스트 때만 덮어씀(forced command 는 env 를 못 넘김)
 LOG_DIR="$HOME/.local/state/clog-backup"
 RCLONE_IMAGE="rclone/rclone:1.71.1"   # apps/postgres/values.yaml backup.image 와 같은 버전
 
@@ -94,7 +103,50 @@ EOF
   exit 0
 fi
 
+# ── ack-logs <날짜>: 로그 백업 지표만 갱신하고 끝 ──
+if [ "$CMD" = "ack-logs" ]; then
+  [[ "$ARG" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ ]] || { log "ack-logs 날짜 형식 오류"; exit 6; }
+  grep -q " logs day=$ARG " "$LOG_DIR/exports.log" 2>/dev/null || { log "내보낸 기록 없는 날짜: $ARG"; exit 6; }
+  DAY_TS=$(date -u -d "$ARG" +%s)
+  NOW=$(date -u +%s)
+  PROM="$METRICS_DIR/clog_log_backup.prom"
+  # 노트북이 밀린 날을 옛날 것부터 채우므로 "가장 최근 날" 은 기존 값과 비교해 큰 쪽을 유지
+  PREV=$(awk '/^clog_log_backup_newest_day_timestamp_seconds /{print $2}' "$PROM" 2>/dev/null || true)
+  [ -n "$PREV" ] && [ "$PREV" -gt "$DAY_TS" ] && DAY_TS=$PREV
+  cat > "$PROM.tmp" <<EOF
+# HELP clog_log_backup_last_success_timestamp_seconds 노트북이 prod 로그 하루치를 검증·저장하고 ack 한 시각
+# TYPE clog_log_backup_last_success_timestamp_seconds gauge
+clog_log_backup_last_success_timestamp_seconds $NOW
+# HELP clog_log_backup_newest_day_timestamp_seconds 노트북에 있는 가장 최근 로그 날짜(UTC 00:00)
+# TYPE clog_log_backup_newest_day_timestamp_seconds gauge
+clog_log_backup_newest_day_timestamp_seconds $DAY_TS
+EOF
+  chmod 644 "$PROM.tmp" && mv "$PROM.tmp" "$PROM"
+  echo "$(date -u +%FT%TZ) ack-logs day=$ARG client=$CLIENT" >> "$LOG_DIR/exports.log"
+  log "ack-logs ok day=$ARG"
+  exit 0
+fi
+
 [ -s "$RECIPIENT_FILE" ] || { log "공개키 없음: $RECIPIENT_FILE"; exit 2; }
+
+# ── logs <날짜>: 그 날 prod 로그를 암호화해 내보내기 ──
+if [ "$CMD" = "logs" ]; then
+  [[ "$ARG" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ ]] && date -u -d "$ARG" +%F >/dev/null 2>&1 || { log "logs 날짜 형식 오류"; exit 7; }
+  [ "$(date -u -d "$ARG" +%F)" = "$ARG" ] || { log "logs 날짜 형식 오류"; exit 7; }
+  OLDEST=$(date -u -d '6 days ago' +%F); NEWEST=$(date -u -d yesterday +%F)
+  { [[ ! "$ARG" < "$OLDEST" ]] && [[ ! "$ARG" > "$NEWEST" ]]; } || { log "범위 밖 날짜 $ARG (허용 $OLDEST ~ $NEWEST)"; exit 7; }
+  LOKI_IP=$(kubectl -n monitoring get svc monitoring-loki -o jsonpath='{.spec.clusterIP}')
+  [ -n "$LOKI_IP" ] || { log "Loki Service 없음"; exit 8; }
+  META=$(mktemp); trap 'rm -f "$META"' EXIT   # 메타데이터(줄 수)만 — 로그 본문은 파이프로만
+  python3 -I "$(dirname "$0")/loki-day-export.py" "http://$LOKI_IP:3100" "$ARG" '{namespace="prod"}' 2>"$META" \
+    | gzip -9 | age -R "$RECIPIENT_FILE" \
+    || { log "로그 내보내기 실패 day=$ARG: $(tr '\n' ' ' < "$META" | cut -c1-200)"; exit 8; }
+  STAT=$(grep -oE 'lines=[0-9]+ raw=[0-9]+' "$META")
+  mkdir -p "$LOG_DIR"
+  echo "$(date -u +%FT%TZ) logs day=$ARG $STAT client=$CLIENT" >> "$LOG_DIR/exports.log"
+  log "logs day=$ARG $STAT"
+  exit 0
+fi
 
 # ── keys: sealed-secrets 마스터 키 전부를 암호화해 내보내기 ──
 if [ "$CMD" = "keys" ]; then

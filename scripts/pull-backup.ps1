@@ -17,7 +17,10 @@ $PiHost    = 'miginho@100.96.195.103'   # Pi 의 Tailscale IP — 집 밖에서�
 $KeepDays  = 30
 $KeepMin   = 7                          # 오래 꺼져 있다 켜져도 전부 지우지 않는 하한
 $KeyDir    = Join-Path $Base 'sealed-keys'   # sealed-secrets 마스터 키 번들(암호문, 전부 보관 — 개당 수십 KB)
-$rc        = 0                          # 키 단계 실패 시 1 — DB 단계는 계속 진행하되 LastTaskResult 에 드러나게
+$LogDir    = Join-Path $Base 'logs'          # prod 로그 하루치(암호문 .ndjson.gz.age) — 감사 M5
+$LogKeepDays = 90
+$LogLookback = 6                        # Pi 가 내보낼 수 있는 범위: 6일 전 ~ 어제 (Loki 보존 7일)
+$rc        = 0                          # 키·로그 단계 실패 시 1 — DB 단계는 계속 진행하되 LastTaskResult 에 드러나게
 
 function Write-Log($msg) {
     $line = '{0} {1}' -f (Get-Date -Format 'yyyy-MM-dd HH:mm:ss'), $msg
@@ -82,6 +85,88 @@ function Sync-SealedKeys {
     }
 }
 
+# prod 로그 외부 백업 (2026-11-10, 감사 M5) — Loki 보존 7일 이후에도 90일간 사본.
+# Pi: backup-export.sh logs <YYYY-MM-DD> (그 날 UTC 하루, NDJSON → gzip → age) → 여기서 검증 → ack-logs
+# 노트북이 며칠 꺼져 있어도 6일 안이면 밀린 날을 옛날 것부터 채운다.
+# 알림: ClogLogBackupStale (노트북에 있는 가장 최근 날이 4일 넘게 안 바뀜)
+# 열람: age -d -i keys\age.key <파일> | gzip -d   → 한 줄 = {"ts","labels","line"}
+function Sync-Logs {
+    New-Item -ItemType Directory -Force -Path $LogDir | Out-Null
+    $today = [DateTime]::UtcNow.Date
+    $newestHave = $null
+    $failed = @()
+    for ($i = $LogLookback; $i -ge 1; $i--) {
+        $day = $today.AddDays(-$i).ToString('yyyy-MM-dd')
+        $dest = Join-Path $LogDir ("prod-logs-$day.ndjson.gz.age")
+        if (Test-Path $dest) { $newestHave = $day; continue }
+
+        $lEnc = [IO.Path]::GetTempFileName(); $lErr = [IO.Path]::GetTempFileName()
+        $lGz = [IO.Path]::GetTempFileName()
+        try {
+            $p = Start-Process -FilePath $ssh -NoNewWindow -Wait -PassThru `
+                -RedirectStandardOutput $lEnc -RedirectStandardError $lErr `
+                -ArgumentList @('-i', $SshKey, '-o', 'IdentitiesOnly=yes', '-o', 'BatchMode=yes',
+                                '-o', 'ConnectTimeout=20', $PiHost, 'logs', $day)
+            $err = (Get-Content $lErr -Raw -ErrorAction SilentlyContinue)
+            if ($p.ExitCode -ne 0) { throw "ssh/logs $day 실패 exit=$($p.ExitCode): $err" }
+            if ($err -notmatch 'logs day=(\d{4}-\d{2}-\d{2}) lines=(\d+) raw=(\d+)') { throw "로그 메타데이터 없음: $err" }
+            if ($Matches[1] -ne $day) { throw "날짜 불일치: 요청 $day / Pi $($Matches[1])" }
+            $lines = [long]$Matches[2]
+
+            # 검증 — 복호화 → gzip 해제 → 줄 수 일치 → 첫·마지막 줄 JSON
+            & $age -d -i $AgeKey -o $lGz $lEnc
+            if ($LASTEXITCODE -ne 0) { throw "로그 $day age 복호화 실패 exit=$LASTEXITCODE" }
+            $fs = [IO.File]::OpenRead($lGz)
+            try {
+                $gz = New-Object IO.Compression.GZipStream($fs, [IO.Compression.CompressionMode]::Decompress)
+                $rd = New-Object IO.StreamReader($gz, [Text.Encoding]::UTF8)
+                $n = 0; $first = $null; $last = $null
+                while ($null -ne ($ln = $rd.ReadLine())) { if ($n -eq 0) { $first = $ln }; $last = $ln; $n++ }
+            } finally { $fs.Dispose() }
+            if ($n -ne $lines) { throw "로그 $day 줄 수 불일치: 받은 $n / Pi $lines" }
+            if ($n -gt 0) {
+                foreach ($l in @($first, $last)) {
+                    $o = $l | ConvertFrom-Json
+                    if (-not $o.ts -or $null -eq $o.line) { throw "로그 $day 형식 오류" }
+                }
+            }
+
+            Move-Item -Path $lEnc -Destination $dest
+            $newestHave = $day
+            Write-Log "LOGS OK $day lines=$lines enc=$((Get-Item $dest).Length)"
+        }
+        catch {
+            # 한 날이 실패해도 다음 날은 계속 받는다 (끝에서 한 번에 실패 처리)
+            Write-Log "FAIL LOGS $day $($_.Exception.Message)"; $failed += $day
+        }
+        finally {
+            # 평문(복호화본)은 반드시 지운다 — 로그에 IP·user_id 가 있다
+            foreach ($f in @($lEnc, $lErr, $lGz)) { if (Test-Path $f) { Remove-Item $f -Force } }
+        }
+    }
+
+    # 가장 최근 날 ack → Pi 지표 갱신 (새로 받은 게 없어도 보냄 — 사본이 있다는 사실은 그대로)
+    if ($newestHave) {
+        $kErr = [IO.Path]::GetTempFileName(); $kOut = [IO.Path]::GetTempFileName()
+        try {
+            $a = Start-Process -FilePath $ssh -NoNewWindow -Wait -PassThru `
+                -RedirectStandardOutput $kOut -RedirectStandardError $kErr `
+                -ArgumentList @('-i', $SshKey, '-o', 'IdentitiesOnly=yes', '-o', 'BatchMode=yes',
+                                '-o', 'ConnectTimeout=20', $PiHost, 'ack-logs', $newestHave)
+            if ($a.ExitCode -ne 0) { throw "ack-logs 실패 exit=$($a.ExitCode): $(Get-Content $kErr -Raw -ErrorAction SilentlyContinue)" }
+            Write-Log "LOGS ack $newestHave"
+        } finally { foreach ($f in @($kErr, $kOut)) { if (Test-Path $f) { Remove-Item $f -Force } } }
+    }
+
+    # 보관 정리 — 파일명 날짜 기준 90일
+    $cut = $today.AddDays(-$LogKeepDays).ToString('yyyy-MM-dd')
+    Get-ChildItem $LogDir -Filter 'prod-logs-*.ndjson.gz.age' |
+        Where-Object { $_.Name.Substring(10, 10) -lt $cut } |
+        ForEach-Object { Remove-Item $_.FullName; Write-Log "LOGS DEL $($_.Name)" }
+
+    if ($failed.Count -gt 0) { throw "로그 실패 날짜: $($failed -join ',')" }
+}
+
 New-Item -ItemType Directory -Force -Path $OutDir | Out-Null
 $ssh = (Get-Command ssh -ErrorAction Stop).Source
 $age = (Get-Command age -ErrorAction Stop).Source
@@ -93,6 +178,8 @@ $tmpAck = [IO.Path]::GetTempFileName()
 try {
     # 0) sealed-secrets 키 — 실패해도 DB 복제는 계속 (서로 독립), 종료 코드로만 드러냄
     try { Sync-SealedKeys } catch { Write-Log "FAIL KEYS $($_.Exception.Message)"; $rc = 1 }
+    # 0') prod 로그 — 마찬가지로 독립 (M5)
+    try { Sync-Logs } catch { Write-Log "FAIL LOGS $($_.Exception.Message)"; $rc = 1 }
 
     # 1) 가져오기 — Start-Process 리다이렉트는 바이트 그대로 저장한다 (PS 5.1 의 > 는 바이너리를 깨뜨림)
     $p = Start-Process -FilePath $ssh -NoNewWindow -Wait -PassThru `
