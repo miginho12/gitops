@@ -8,7 +8,7 @@
 replicaCount: 2
 
 image:
-  tag: "sha-41335d2"  # dev 검증 태그 승격 — CSP 위반 보고 POST /csp-report(감사 M3, 2026-11-10). 이전 43e0878: refresh 항상 회전(ADR-076 ③)
+  tag: "sha-b7f7a4d"  # dev 검증 태그 승격 — MinIO storage 네임스페이스 이전(감사 M4, config 기본값·로컬 compose 만 변경, 2026-11-10). 이전 41335d2: CSP 위반 보고(M3)
   pullPolicy: IfNotPresent
 
 # 내부 전용 NodePort (dev의 30080/30081과 겹치지 않게 30082)

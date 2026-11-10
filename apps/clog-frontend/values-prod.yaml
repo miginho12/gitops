@@ -11,7 +11,7 @@
 replicaCount: 2
 
 image:
-  tag: "sha-8492c11"  # dev에서 검증된 태그를 그대로 승격 — 보안 응답 헤더 + CSP Report-Only(감사 M3, 2026-11-10). 이전 82b693a: 로그아웃 시 서버 refresh 폐기(M13)
+  tag: "sha-0454e59"  # dev에서 검증된 태그를 그대로 승격 — MinIO 프록시 대상 storage 네임스페이스(감사 M4, 2026-11-10). 이전 8492c11: 보안 헤더 + CSP Report-Only(M3)
   pullPolicy: IfNotPresent
 
 service:
