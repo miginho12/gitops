@@ -23,6 +23,9 @@ spec:
         {{- end }}
       labels:
         {{- include "clog.labels" . | nindent 8 }}
+        # API Pod 구분 (감사 M12) — worker·CronJob Pod 도 name+instance 를 공유해 Service·kubectl 이
+        # 그것까지 골랐다. 1단계: 라벨만 추가(롤링) → 2단계: Service·Deployment selector 에 반영.
+        app.kubernetes.io/component: api
         {{- with .Values.podLabels }}
         {{- toYaml . | nindent 8 }}
         {{- end }}
