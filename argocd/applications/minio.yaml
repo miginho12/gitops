@@ -1,0 +1,33 @@
+# MinIO (dev·prod 공유 인스턴스) — storage 네임스페이스 (2026-11-10, 감사 M4)
+# 이전: minio-dev (dev 네임스페이스, auto-sync) → dev 작업·네임스페이스 수명이 prod 미디어·백업에 직결됐다.
+# 데이터 접근은 버킷별 사용자·정책으로 분리(clog-dev-policy / clog-prod-policy).
+# prod 데이터를 담고 있으므로 prod 앱들과 같이 **수동 sync** — 변경은 검토 후 직접 sync.
+# PV 는 Retain (2026-11-10) — PVC 를 지워도 데이터 유지.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: minio
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/miginho12/gitops
+    targetRevision: main
+    path: apps/minio
+    helm:
+      releaseName: minio
+      valueFiles:
+        - values.yaml
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: storage
+  syncPolicy:
+    syncOptions:
+      - CreateNamespace=true
+  ignoreDifferences:
+    - group: apps
+      kind: StatefulSet
+      jsonPointers:
+        - /spec/volumeClaimTemplates
