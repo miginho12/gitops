@@ -11,7 +11,7 @@
 replicaCount: 2
 
 image:
-  tag: "sha-2067db0"  # dev에서 검증된 태그를 그대로 승격 — 앱 카카오 로그인 시스템 브라우저+앱 복귀(감사 M14, 웹 흐름 불변, 2026-11-11). 이전 3d0e630: 새 버전 감지(M7)
+  tag: "sha-9e3b5aa"  # dev에서 검증된 태그를 그대로 승격 — L1 A: npm minor/patch 14개(React 19.3·capacitor 8.6, #14) + nginx 1.27→1.31(#12, 2026-11-11). 이전 2067db0: 앱 카카오 로그인(M14)
   pullPolicy: IfNotPresent
 
 service:
