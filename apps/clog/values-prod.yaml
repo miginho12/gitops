@@ -8,7 +8,7 @@
 replicaCount: 2
 
 image:
-  tag: "sha-30af507"  # dev 검증 태그 승격 — L1 A: python minor/patch 10개(pydantic 2.14·asyncpg 0.32·alembic 1.20·ruff 0.17·mypy 2.4, Dependabot #10, 2026-11-11). 이전 3459460: 앱 카카오 로그인(M14)
+  tag: "sha-e554f32"  # dev 검증 태그 승격 — L1 B: FastAPI 0.162·starlette 1.10 + 자체 Prometheus 미들웨어(starlette-prometheus 제거, ADR-093)·mako 1.4.3 (2026-11-11). 이전 30af507: python minor/patch(L1 A)
   pullPolicy: IfNotPresent
 
 # 내부 전용 NodePort (dev의 30080/30081과 겹치지 않게 30082)
