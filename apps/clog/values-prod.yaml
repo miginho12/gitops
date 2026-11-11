@@ -8,7 +8,7 @@
 replicaCount: 2
 
 image:
-  tag: "sha-2b0f894"  # dev 검증 태그 승격 — L1 B-2: SQLAlchemy 2.0.50→2.1.8(Row 타이핑 1건, verify_comment_batch_counts, 2026-11-11). 이전 e554f32: FastAPI 0.162·자체 메트릭(L1 B-1)
+  tag: "sha-f379d87"  # dev 검증 태그 승격 — L1 B-3: Python 3.14 + Debian trixie(ffmpeg 7.1.5, 미디어 경로 기존과 동일 확인, 2026-11-11). 이전 2b0f894: SQLAlchemy 2.1.8(L1 B-2)
   pullPolicy: IfNotPresent
 
 # 내부 전용 NodePort (dev의 30080/30081과 겹치지 않게 30082)
