@@ -11,7 +11,7 @@
 replicaCount: 2
 
 image:
-  tag: "sha-3b98ba4"  # dev에서 검증된 태그를 그대로 승격 — L1 C-1: framer-motion 12.42.2→14.10.1(#19, 전환 10종 프레임 비교 동일, 2026-11-12). 이전 9e3b5aa: npm minor/patch 14개 + nginx 1.31(L1 A)
+  tag: "sha-cb210ff"  # v1.0.0 (release-please 기준선, L1 C-2, 2026-11-12) — 3b98ba4 대비 버전 필드·릴리스 도구뿐. 이전 3b98ba4: framer-motion 14(L1 C-1)
   pullPolicy: IfNotPresent
 
 service:
