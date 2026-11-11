@@ -8,7 +8,7 @@
 replicaCount: 2
 
 image:
-  tag: "sha-e554f32"  # dev 검증 태그 승격 — L1 B: FastAPI 0.162·starlette 1.10 + 자체 Prometheus 미들웨어(starlette-prometheus 제거, ADR-093)·mako 1.4.3 (2026-11-11). 이전 30af507: python minor/patch(L1 A)
+  tag: "sha-2b0f894"  # dev 검증 태그 승격 — L1 B-2: SQLAlchemy 2.0.50→2.1.8(Row 타이핑 1건, verify_comment_batch_counts, 2026-11-11). 이전 e554f32: FastAPI 0.162·자체 메트릭(L1 B-1)
   pullPolicy: IfNotPresent
 
 # 내부 전용 NodePort (dev의 30080/30081과 겹치지 않게 30082)
