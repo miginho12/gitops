@@ -8,7 +8,7 @@
 replicaCount: 2
 
 image:
-  tag: "sha-f379d87"  # dev 검증 태그 승격 — L1 B-3: Python 3.14 + Debian trixie(ffmpeg 7.1.5, 미디어 경로 기존과 동일 확인, 2026-11-11). 이전 2b0f894: SQLAlchemy 2.1.8(L1 B-2)
+  tag: "sha-b59288d"  # v1.0.0 (release-please 기준선, L1 C-2, 2026-11-12) — f379d87 대비 버전 값 0.1.0→1.0.0·릴리스 도구뿐. 이전 f379d87: Python 3.14 + trixie(L1 B-3)
   pullPolicy: IfNotPresent
 
 # 내부 전용 NodePort (dev의 30080/30081과 겹치지 않게 30082)
