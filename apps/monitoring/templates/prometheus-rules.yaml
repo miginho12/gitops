@@ -133,6 +133,31 @@ spec:
             summary: "prod 로그 백업 지표 없음"
             description: "clog_log_backup_newest_day_timestamp_seconds 가 1시간째 없음. /var/lib/node_exporter/textfile_collector/clog_log_backup.prom 확인."
 
+        # ── infra Terraform state 외부 백업 (2026-11-12, H5·ADR-095) ──
+        # state 는 Git 밖(웹훅·ping URL 평문) → 노트북이 매일 tfstate → 검증 → ack-tfstate.
+        # 내용이 같으면 노트북은 SKIP 해도 ack 는 보내므로 "마지막 ack" 만 보면 된다 (DB 복제와 같은 72h).
+        - alert: ClogTfstateBackupStale
+          expr: |
+            time() - max by (stack) (clog_tfstate_backup_last_success_timestamp_seconds) > 72 * 3600
+          for: 10m
+          labels:
+            severity: warning
+            category: infra
+          annotations:
+            summary: "Terraform state 외부 백업이 72시간 넘게 멈춤 ({{`{{ $labels.stack }}`}})"
+            description: "노트북이 마지막으로 state 사본을 확인한 지 {{`{{ $value | humanizeDuration }}`}}. 노트북 pull.log 의 TFSTATE 줄과 Pi exports.log 의 tfstate/ack-tfstate 확인."
+
+        - alert: ClogTfstateBackupMetricMissing
+          expr: |
+            absent(clog_tfstate_backup_last_success_timestamp_seconds)
+          for: 1h
+          labels:
+            severity: warning
+            category: infra
+          annotations:
+            summary: "Terraform state 백업 지표 없음"
+            description: "clog_tfstate_backup_last_success_timestamp_seconds 가 1시간째 없음. /var/lib/node_exporter/textfile_collector/clog_tfstate_backup.prom 확인."
+
         # ── Loki 보존 삭제 동작 감시 (2026-11-10, 감사 M5) ──
         # 보존 삭제는 compactor 실행(10분 주기) 안에서 일어난다. 설정만 있고 실제로 안 지워지던 상태가
         # 144일간 아무도 모르게 지속됐다 → "마지막 성공 실행" 이 3시간 넘게 멈추면 알린다.

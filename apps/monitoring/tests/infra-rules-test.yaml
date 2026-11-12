@@ -177,3 +177,41 @@ tests:
             exp_annotations:
               summary: "prod 로그 백업 지표 없음"
               description: "clog_log_backup_newest_day_timestamp_seconds 가 1시간째 없음. /var/lib/node_exporter/textfile_collector/clog_log_backup.prom 확인."
+  # ── ClogTfstateBackupStale / MetricMissing (H5) ──
+  # ack 시각이 0 에 고정 = 이후 pull 없음 → 72h 초과 + for 10m
+  - interval: 1m
+    input_series:
+      - series: 'clog_tfstate_backup_last_success_timestamp_seconds{stack="uptime"}'
+        values: '0x4400'
+    alert_rule_test:
+      - {eval_time: 71h,   alertname: ClogTfstateBackupStale, exp_alerts: []}
+      - {eval_time: 72h5m, alertname: ClogTfstateBackupStale, exp_alerts: []}   # 넘었지만 for 10m 대기
+      - eval_time: 72h15m
+        alertname: ClogTfstateBackupStale
+        exp_alerts:
+          - exp_labels: {severity: warning, category: infra, stack: uptime}
+            exp_annotations:
+              summary: "Terraform state 외부 백업이 72시간 넘게 멈춤 (uptime)"
+              description: "노트북이 마지막으로 state 사본을 확인한 지 3d 0h 15m 0s. 노트북 pull.log 의 TFSTATE 줄과 Pi exports.log 의 tfstate/ack-tfstate 확인."
+      - {eval_time: 72h15m, alertname: ClogTfstateBackupMetricMissing, exp_alerts: []}
+  # 매일 ack(내용이 같아 SKIP 이어도) → 안 울림
+  - interval: 1m
+    input_series:
+      - series: 'clog_tfstate_backup_last_success_timestamp_seconds{stack="uptime"}'
+        values: '0x1439 86400x1439 172800x1439 259200x1439'
+    alert_rule_test:
+      - {eval_time: 95h, alertname: ClogTfstateBackupStale, exp_alerts: []}
+  # 지표 없음 → 1h 뒤 Missing
+  - interval: 1m
+    input_series:
+      - series: 'up{job="node-exporter"}'
+        values: '1x100'
+    alert_rule_test:
+      - {eval_time: 50m, alertname: ClogTfstateBackupMetricMissing, exp_alerts: []}
+      - eval_time: 61m
+        alertname: ClogTfstateBackupMetricMissing
+        exp_alerts:
+          - exp_labels: {severity: warning, category: infra}
+            exp_annotations:
+              summary: "Terraform state 백업 지표 없음"
+              description: "clog_tfstate_backup_last_success_timestamp_seconds 가 1시간째 없음. /var/lib/node_exporter/textfile_collector/clog_tfstate_backup.prom 확인."
