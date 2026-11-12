@@ -100,7 +100,10 @@ kube-prometheus-stack:
           memory: 80Mi
         limits:
           memory: 200Mi
-    
+      # /etc/alertmanager/secrets/<이름>/ 에 마운트 — healthchecks 수신처의 url_file 이 읽는다(H5, ADR-095)
+      secrets:
+        - alertmanager-healthchecks
+
     # 라우팅 + Discord webhook
     config:
       global:
@@ -113,8 +116,17 @@ kube-prometheus-stack:
         repeat_interval: 4h
         receiver: 'discord-infra'  # default fallback
         routes:
+          # dead-man switch(H5, ADR-095): 항상 firing 인 Watchdog 을 Healthchecks.io 로 주기적으로 보낸다.
+          # 끊기면(Prometheus·Alertmanager·Pi·네트워크 정지) Healthchecks 가 Discord #uptime·메일로 알린다.
+          # repeat_interval 5m 은 group_interval(1m) 단위로 평가 → 실제 5~6분 간격. Healthchecks 쪽은 timeout 10m + grace 5m.
           - matchers:
-              - alertname=~"Watchdog|InfoInhibitor|KubeProxyDown"
+              - alertname="Watchdog"
+            receiver: 'healthchecks'
+            group_wait: 0s
+            group_interval: 1m
+            repeat_interval: 5m
+          - matchers:
+              - alertname=~"InfoInhibitor|KubeProxyDown"
             receiver: 'null'
           - matchers:
               - alertname="KubePodCrashLooping"
@@ -129,6 +141,12 @@ kube-prometheus-stack:
       
       receivers:
         - name: 'null'
+        - name: 'healthchecks'
+          webhook_configs:
+            # ping URL 은 공개 저장소에 두지 않는다 → SealedSecret(templates/sealed-secret-alertmanager-healthchecks.yaml)
+            - url_file: /etc/alertmanager/secrets/alertmanager-healthchecks/url
+              # Prometheus 가 죽어 Watchdog 이 resolved 되면 그 알림도 ping(=정상)으로 읽힌다 → 보내지 않는다
+              send_resolved: false
         - name: 'discord-infra'
           webhook_configs:
             - url: 'http://alertmanager-discord-infra:9094'
