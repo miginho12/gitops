@@ -11,7 +11,7 @@
 replicaCount: 2
 
 image:
-  tag: "sha-cb210ff"  # v1.0.0 (release-please 기준선, L1 C-2, 2026-11-12) — 3b98ba4 대비 버전 필드·릴리스 도구뿐. 이전 3b98ba4: framer-motion 14(L1 C-1)
+  tag: "sha-24a8c74"  # v1.1.0 (2026-11-12) — CSP 강제 전환(감사 M3 2단계). 되돌리기: sha-cb210ff(v1.0.0, CSP Report-Only)
   pullPolicy: IfNotPresent
 
 service:
