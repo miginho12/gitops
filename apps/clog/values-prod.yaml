@@ -8,7 +8,7 @@
 replicaCount: 2
 
 image:
-  tag: "sha-7c8572e"  # v1.0.1 (첫 release-please 자동 릴리스, 2026-11-12) — 영상·썸네일 확대 버그 수정(db55727). 이전 b59288d: v1.0.0
+  tag: "sha-53df91b"  # v1.0.2 (2026-11-13) — 카카오 프로필 https(secure_resource) + 마이그레이션 6a4fc0e704e9(별도 적용). 이전 7c8572e: v1.0.1
   pullPolicy: IfNotPresent
 
 # 내부 전용 NodePort (dev의 30080/30081과 겹치지 않게 30082)
