@@ -21,6 +21,7 @@ $LogDir    = Join-Path $Base 'logs'          # prod 로그 하루치(암호문 .
 $LogKeepDays = 90
 $LogLookback = 6                        # Pi 가 내보낼 수 있는 범위: 6일 전 ~ 어제 (Loki 보존 7일)
 $TfDir     = Join-Path $Base 'tfstate'       # infra Terraform state(암호문, 바뀔 때만 새 파일 — 전부 보관, 개당 수 KB) — H5
+$TfStacks  = @('uptime', 'cloudflare')       # infra 저장소 폴더(stack)마다 state 하나 — cloudflare 는 2026-11-14(ADR-096)
 $rc        = 0                          # 키·로그 단계 실패 시 1 — DB 단계는 계속 진행하되 LastTaskResult 에 드러나게
 
 function Write-Log($msg) {
@@ -169,10 +170,10 @@ function Sync-Logs {
 }
 
 # infra Terraform state (2026-11-12, H5·ADR-095) — state 는 Git 밖(웹훅·ping URL 평문)이라 Pi 유실 대비 사본.
-# Pi: backup-export.sh tfstate (검증 후 age 암호화) → 여기서 검증 → ack-tfstate
-# → Pi 지표 갱신 (알림 ClogTfstateBackupStale: 72h 동안 ack 없음)
-# 복구: age -d -i keys\age.key <이름>.json.age > infra\uptime\terraform.tfstate  (그 뒤 terraform plan 이 No changes 인지)
-function Sync-Tfstate {
+# Pi: backup-export.sh tfstate <stack> (검증 후 age 암호화) → 여기서 검증 → ack-tfstate
+# → Pi stack 별 지표 갱신 (알림 ClogTfstateBackupStale: 72h 동안 ack 없음 · MetricMissing: stack 지표 없음)
+# 복구: age -d -i keys\age.key tfstate-<stack>-<serial>-<sha>.json.age > infra\<stack>\terraform.tfstate  (그 뒤 terraform plan 이 No changes 인지)
+function Sync-Tfstate($Stack) {
     New-Item -ItemType Directory -Force -Path $TfDir | Out-Null
     $tEnc = [IO.Path]::GetTempFileName(); $tErr = [IO.Path]::GetTempFileName()
     $tPlain = [IO.Path]::GetTempFileName(); $tAck = [IO.Path]::GetTempFileName()
@@ -180,10 +181,10 @@ function Sync-Tfstate {
         $p = Start-Process -FilePath $ssh -NoNewWindow -Wait -PassThru `
             -RedirectStandardOutput $tEnc -RedirectStandardError $tErr `
             -ArgumentList @('-i', $SshKey, '-o', 'IdentitiesOnly=yes', '-o', 'BatchMode=yes',
-                            '-o', 'ConnectTimeout=20', $PiHost, 'tfstate')
+                            '-o', 'ConnectTimeout=20', $PiHost, 'tfstate', $Stack)
         $err = (Get-Content $tErr -Raw -ErrorAction SilentlyContinue)
         if ($p.ExitCode -ne 0) { throw "ssh/tfstate 실패 exit=$($p.ExitCode): $err" }
-        if ($err -notmatch 'tfstate name=(tfstate-uptime-(\d+)-[0-9a-f]{12}) serial=\d+ sha256=([0-9a-f]{64}) bytes=(\d+)') { throw "state 메타데이터 없음: $err" }
+        if ($err -notmatch ('tfstate name=(tfstate-' + $Stack + '-(\d+)-[0-9a-f]{12}) serial=\d+ sha256=([0-9a-f]{64}) bytes=(\d+)')) { throw "state 메타데이터 없음($Stack): $err" }
         $name = $Matches[1]; $serial = [int]$Matches[2]; $sha = $Matches[3]; $bytes = [long]$Matches[4]
         $dest = Join-Path $TfDir ($name + '.json.age')
 
@@ -227,7 +228,9 @@ try {
     # 0') prod 로그 — 마찬가지로 독립 (M5)
     try { Sync-Logs } catch { Write-Log "FAIL LOGS $($_.Exception.Message)"; $rc = 1 }
     # 0'') infra Terraform state — 마찬가지로 독립 (H5)
-    try { Sync-Tfstate } catch { Write-Log "FAIL TFSTATE $($_.Exception.Message)"; $rc = 1 }
+    foreach ($st in $TfStacks) {
+        try { Sync-Tfstate $st } catch { Write-Log "FAIL TFSTATE $st $($_.Exception.Message)"; $rc = 1 }
+    }
 
     # 1) 가져오기 — Start-Process 리다이렉트는 바이트 그대로 저장한다 (PS 5.1 의 > 는 바이너리를 깨뜨림)
     $p = Start-Process -FilePath $ssh -NoNewWindow -Wait -PassThru `

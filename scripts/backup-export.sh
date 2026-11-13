@@ -36,10 +36,11 @@
 #
 # tfstate / ack-tfstate <이름>: infra 저장소 Terraform state 외부 백업 (2026-11-12, H5·ADR-095)
 #   state 는 Git 에 넣지 않고(웹훅·ping URL 평문) Pi 로컬에만 있다 → 디스크 유실 대비 노트북에 사본.
-#   tfstate    : ~/project/infra/uptime/terraform.tfstate 를 검증(JSON·version 4) 후 age 로 stdout.
-#                stderr = "tfstate name=tfstate-uptime-<serial>-<sha256 앞 12자> serial=<n> sha256=<64자> bytes=<n>"
+#   tfstate [stack]: ~/project/infra/<stack>/terraform.tfstate 를 검증(JSON·version 4) 후 age 로 stdout.
+#                stack = uptime(기본 — 인자 없는 옛 pull-backup.ps1 호환) | cloudflare (2026-11-14, ADR-096). 그 밖은 거부.
+#                stderr = "tfstate name=tfstate-<stack>-<serial>-<sha256 앞 12자> serial=<n> sha256=<64자> bytes=<n>"
 #                이름이 내용 해시라 state 가 바뀔 때만 노트북에 새 파일이 생긴다.
-#   ack-tfstate: 노트북 검증 후 지표 갱신 → ClogTfstateBackupStale
+#   ack-tfstate: 노트북 검증 후 stack 별 지표 파일 갱신 → ClogTfstateBackupStale·MetricMissing
 
 set -euo pipefail
 export PATH=/usr/local/bin:/usr/bin:/bin
@@ -56,7 +57,8 @@ LOG_DIR="${LOG_DIR:-$HOME/.local/state/clog-backup}"   # 테스트 때만 덮어
 RCLONE_IMAGE="rclone/rclone:1.71.1"   # apps/postgres/values.yaml backup.image 와 같은 버전
 
 METRICS_DIR="${METRICS_DIR:-/var/lib/node_exporter/textfile_collector}"
-TFSTATE_FILE="${TFSTATE_FILE:-$HOME/project/infra/uptime/terraform.tfstate}"   # 테스트 때만 덮어씀
+TFSTATE_DIR="${TFSTATE_DIR:-$HOME/project/infra}"   # <stack>/terraform.tfstate 의 부모. 테스트 때만 덮어씀
+TFSTATE_STACKS="uptime|cloudflare"                  # 허용 stack (임의 경로를 읽지 않게)
 
 log() { echo "backup-export: $*" >&2; }
 CLIENT="${SSH_CLIENT:-local}"; CLIENT="${CLIENT%% *}"   # 접속한 IP (수동 실행은 local)
@@ -137,20 +139,23 @@ fi
 
 # ── ack-tfstate <이름>: Terraform state 백업 지표만 갱신하고 끝 ──
 if [ "$CMD" = "ack-tfstate" ]; then
-  [[ "$ARG" =~ ^tfstate-uptime-([0-9]+)-[0-9a-f]{12}$ ]] || { log "ack-tfstate 이름 형식 오류"; exit 6; }
+  [[ "$ARG" =~ ^tfstate-($TFSTATE_STACKS)-([0-9]+)-[0-9a-f]{12}$ ]] || { log "ack-tfstate 이름 형식 오류"; exit 6; }
   grep -q " tfstate name=$ARG " "$LOG_DIR/exports.log" 2>/dev/null || { log "내보낸 기록 없는 state: $ARG"; exit 6; }
-  SERIAL="${BASH_REMATCH[1]}"
+  STACK="${BASH_REMATCH[1]}"; SERIAL="${BASH_REMATCH[2]}"
   NOW=$(date -u +%s)
-  PROM="$METRICS_DIR/clog_tfstate_backup.prom"
+  # stack 마다 파일 하나 — 한 stack 의 ack 가 다른 stack 의 지표를 지우지 않게
+  PROM="$METRICS_DIR/clog_tfstate_backup_$STACK.prom"
   cat > "$PROM.tmp" <<EOF
 # HELP clog_tfstate_backup_last_success_timestamp_seconds 노트북이 Terraform state 사본을 검증·저장하고 ack 한 시각
 # TYPE clog_tfstate_backup_last_success_timestamp_seconds gauge
-clog_tfstate_backup_last_success_timestamp_seconds{stack="uptime"} $NOW
+clog_tfstate_backup_last_success_timestamp_seconds{stack="$STACK"} $NOW
 # HELP clog_tfstate_backup_serial 노트북에 있는 최신 state 의 serial
 # TYPE clog_tfstate_backup_serial gauge
-clog_tfstate_backup_serial{stack="uptime"} $SERIAL
+clog_tfstate_backup_serial{stack="$STACK"} $SERIAL
 EOF
   chmod 644 "$PROM.tmp" && mv "$PROM.tmp" "$PROM"
+  # 옛 단일 파일(11-12, uptime 만)은 같은 시리즈를 중복 노출해 node-exporter 수집 오류가 난다 → 새 파일을 쓴 뒤 제거
+  [ "$STACK" = "uptime" ] && rm -f "$METRICS_DIR/clog_tfstate_backup.prom"
   echo "$(date -u +%FT%TZ) ack-tfstate name=$ARG client=$CLIENT" >> "$LOG_DIR/exports.log"
   log "ack-tfstate ok name=$ARG"
   exit 0
@@ -160,6 +165,9 @@ fi
 
 # ── tfstate: Terraform state 를 검증해 암호화해 내보내기 ──
 if [ "$CMD" = "tfstate" ]; then
+  STACK="${ARG:-uptime}"
+  [[ "$STACK" =~ ^($TFSTATE_STACKS)$ ]] || { log "tfstate stack 오류: $STACK"; exit 9; }
+  TFSTATE_FILE="$TFSTATE_DIR/$STACK/terraform.tfstate"
   [ -s "$TFSTATE_FILE" ] || { log "state 없음: $TFSTATE_FILE"; exit 9; }
   # 쓰는 도중(apply 중)의 반쪽 파일을 내보내지 않게 JSON·version·serial 을 확인
   SERIAL=$(python3 -I -c '
@@ -170,7 +178,7 @@ if s.get("version") != 4 or not s.get("lineage") or not isinstance(s.get("serial
 print(s["serial"])' "$TFSTATE_FILE") || { log "state 검증 실패: $TFSTATE_FILE"; exit 9; }
   SHA=$(sha256sum "$TFSTATE_FILE" | cut -d' ' -f1)
   BYTES=$(stat -c %s "$TFSTATE_FILE")
-  NAME="tfstate-uptime-$SERIAL-${SHA:0:12}"
+  NAME="tfstate-$STACK-$SERIAL-${SHA:0:12}"
   age -R "$RECIPIENT_FILE" < "$TFSTATE_FILE"
   mkdir -p "$LOG_DIR"
   echo "$(date -u +%FT%TZ) tfstate name=$NAME serial=$SERIAL bytes=$BYTES client=$CLIENT" >> "$LOG_DIR/exports.log"
