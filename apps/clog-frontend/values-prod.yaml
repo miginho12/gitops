@@ -11,7 +11,7 @@
 replicaCount: 2
 
 image:
-  tag: "sha-24a8c74"  # v1.1.0 (2026-11-12) — CSP 강제 전환(감사 M3 2단계). 되돌리기: sha-cb210ff(v1.0.0, CSP Report-Only)
+  tag: "sha-7b6b943"  # v1.1.1 (2026-11-13) — CSP img-src 카카오 https 만(backend v1.0.2 + 마이그레이션 후). 되돌리기: sha-24a8c74(v1.1.0, http 카카오 허용)·sha-cb210ff(v1.0.0, Report-Only)
   pullPolicy: IfNotPresent
 
 service:
