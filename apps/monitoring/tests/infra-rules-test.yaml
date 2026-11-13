@@ -183,6 +183,8 @@ tests:
     input_series:
       - series: 'clog_tfstate_backup_last_success_timestamp_seconds{stack="uptime"}'
         values: '0x4400'
+      - series: 'clog_tfstate_backup_last_success_timestamp_seconds{stack="cloudflare"}'
+        values: '0+60x4400'   # cloudflare 는 매분 ack(정상) → uptime 만 울려야 한다
     alert_rule_test:
       - {eval_time: 71h,   alertname: ClogTfstateBackupStale, exp_alerts: []}
       - {eval_time: 72h5m, alertname: ClogTfstateBackupStale, exp_alerts: []}   # 넘었지만 for 10m 대기
@@ -199,8 +201,11 @@ tests:
     input_series:
       - series: 'clog_tfstate_backup_last_success_timestamp_seconds{stack="uptime"}'
         values: '0x1439 86400x1439 172800x1439 259200x1439'
+      - series: 'clog_tfstate_backup_last_success_timestamp_seconds{stack="cloudflare"}'
+        values: '0x1439 86400x1439 172800x1439 259200x1439'
     alert_rule_test:
       - {eval_time: 95h, alertname: ClogTfstateBackupStale, exp_alerts: []}
+      - {eval_time: 95h, alertname: ClogTfstateBackupMetricMissing, exp_alerts: []}
   # 지표 없음 → 1h 뒤 Missing
   - interval: 1m
     input_series:
@@ -210,8 +215,25 @@ tests:
       - {eval_time: 50m, alertname: ClogTfstateBackupMetricMissing, exp_alerts: []}
       - eval_time: 61m
         alertname: ClogTfstateBackupMetricMissing
-        exp_alerts:
-          - exp_labels: {severity: warning, category: infra}
+        exp_alerts:   # 둘 다 없음 → stack 마다 1건
+          - exp_labels: {severity: warning, category: infra, stack: uptime}
             exp_annotations:
-              summary: "Terraform state 백업 지표 없음"
-              description: "clog_tfstate_backup_last_success_timestamp_seconds 가 1시간째 없음. /var/lib/node_exporter/textfile_collector/clog_tfstate_backup.prom 확인."
+              summary: "Terraform state 백업 지표 없음 (uptime)"
+              description: "clog_tfstate_backup_last_success_timestamp_seconds{stack=\"uptime\"} 가 1시간째 없음. /var/lib/node_exporter/textfile_collector/clog_tfstate_backup_uptime.prom 과 노트북 pull.log 의 TFSTATE 줄 확인."
+          - exp_labels: {severity: warning, category: infra, stack: cloudflare}
+            exp_annotations:
+              summary: "Terraform state 백업 지표 없음 (cloudflare)"
+              description: "clog_tfstate_backup_last_success_timestamp_seconds{stack=\"cloudflare\"} 가 1시간째 없음. /var/lib/node_exporter/textfile_collector/clog_tfstate_backup_cloudflare.prom 과 노트북 pull.log 의 TFSTATE 줄 확인."
+  # cloudflare 지표만 없음(새 stack 을 ps1 에 안 넣은 경우) → cloudflare 만 Missing — 이름 없는 absent() 였다면 조용했을 경우
+  - interval: 1m
+    input_series:
+      - series: 'clog_tfstate_backup_last_success_timestamp_seconds{stack="uptime"}'
+        values: '0+60x100'
+    alert_rule_test:
+      - eval_time: 61m
+        alertname: ClogTfstateBackupMetricMissing
+        exp_alerts:
+          - exp_labels: {severity: warning, category: infra, stack: cloudflare}
+            exp_annotations:
+              summary: "Terraform state 백업 지표 없음 (cloudflare)"
+              description: "clog_tfstate_backup_last_success_timestamp_seconds{stack=\"cloudflare\"} 가 1시간째 없음. /var/lib/node_exporter/textfile_collector/clog_tfstate_backup_cloudflare.prom 과 노트북 pull.log 의 TFSTATE 줄 확인."
