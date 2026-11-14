@@ -246,18 +246,21 @@ loki:
       retention_delete_worker_count: 50   # 기본 150 — Pi 부하 완화
       delete_request_store: filesystem    # retention_enabled 시 필수(Loki 3.x)
   
+  # deploymentMode 는 SingleBinary 유지 — community 12.0 에서 Monolithic 으로 이름이 바뀌었지만 옛 이름도 지원.
+  # 바꾸면 Pod 라벨(→ StatefulSet selector, 불변)이 달라질 수 있어 별도 작업으로(렌더 비교 후).
   singleBinary:
     replicas: 1
     persistence:
       enabled: true
       size: 20Gi
       storageClass: local-path
+    # 2026-11-14 limit 300Mi → 512Mi: 7일 최대 299Mi 로 이미 한계(평소 ~110Mi), Loki 3.7 이전과 함께 여유 확보
     resources:
       requests:
-        memory: 100Mi
+        memory: 128Mi
         cpu: 50m
       limits:
-        memory: 300Mi
+        memory: 512Mi
   
   # 분산 모드용 컴포넌트 모두 비활성 (single-binary 라)
   read:

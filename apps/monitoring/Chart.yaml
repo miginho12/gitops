@@ -12,8 +12,11 @@ dependencies:
     version: "92.17.0"
     repository: https://prometheus-community.github.io/helm-charts
   - name: loki
-    version: "6.16.0"
-    repository: https://grafana.github.io/helm-charts
+    # 2026-11-14 grafana/helm-charts 6.16.0(Loki 3.1.1) → grafana-community 20.2.1(Loki 3.7.9, 10-31 배포).
+    # grafana 저장소의 loki 7.x 는 Enterprise Logs(GEL) 전용 — OSS 차트는 2026-03 community 로 이전(ADR-100).
+    # StatefulSet serviceName·selector·volumeClaimTemplates 동일(렌더 비교) → 롤링, PVC 유지.
+    version: "20.2.1"
+    repository: https://grafana-community.github.io/helm-charts
   - name: promtail
     version: "6.16.6"
     repository: https://grafana.github.io/helm-charts
