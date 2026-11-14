@@ -28,12 +28,14 @@ kube-prometheus-stack:
       size: 5Gi
       storageClassName: local-path
 
+    # 2026-11-14 kps 92.17.0(Grafana 13.0.2 → 13.3.0-distroless) 이후 평소 ~376Mi(이전 ~176Mi), 시작 직후 최고 529Mi 로
+    # 옛 limit 500Mi 를 넘음 → 다음 재시작 때 OOM 반복 위험. request 는 실제 사용량, limit 은 시작 최고치 여유.
     resources:
       requests:
-        memory: 128Mi
+        memory: 384Mi
         cpu: 50m
       limits:
-        memory: 500Mi
+        memory: 768Mi
     
     # Loki datasource 자동 추가
     additionalDataSources:
