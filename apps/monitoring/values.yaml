@@ -10,6 +10,9 @@ kube-prometheus-stack:
   # Grafana
   # ────────────────────────────────────────
   grafana:
+    # helm test hook(Pod·ConfigMap·SA) — ArgoCD 가 일반 리소스로 만들어 남을 수 있어 끈다(loki test 와 같은 이유, 2026-11-14)
+    testFramework:
+      enabled: false
     # 관리자 계정은 SealedSecret(templates/sealed-secret-grafana-admin.yaml)에서 (2026-11-10, 감사 M10).
     # 이전 평문 adminPassword 는 공개 저장소에 노출돼 있었다 — DB 재생성(IaC 재구축·PVC 유실) 시 그 값이 됐을 것.
     # sidecar(대시보드·데이터소스 리로드)도 같은 Secret 을 쓴다.
