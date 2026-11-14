@@ -237,3 +237,76 @@ tests:
             exp_annotations:
               summary: "Terraform state 백업 지표 없음 (cloudflare)"
               description: "clog_tfstate_backup_last_success_timestamp_seconds{stack=\"cloudflare\"} 가 1시간째 없음. /var/lib/node_exporter/textfile_collector/clog_tfstate_backup_cloudflare.prom 과 노트북 pull.log 의 TFSTATE 줄 확인."
+  # ── TerraformDrift* (2026-11-14) ──
+  # cloudflare 가 t=0 부터 drift(1), uptime 은 정상 → cloudflare 만, for 10m 뒤
+  - interval: 1m
+    input_series:
+      - series: 'clog_terraform_drift{stack="uptime"}'
+        values: '0x100'
+      - series: 'clog_terraform_drift{stack="cloudflare"}'
+        values: '1x100'
+      - series: 'clog_terraform_drift_check_success{stack="uptime"}'
+        values: '1x100'
+      - series: 'clog_terraform_drift_check_success{stack="cloudflare"}'
+        values: '1x100'
+      - series: 'clog_terraform_drift_last_run_timestamp_seconds{stack="uptime"}'
+        values: '0x100'
+      - series: 'clog_terraform_drift_last_run_timestamp_seconds{stack="cloudflare"}'
+        values: '0x100'
+    alert_rule_test:
+      - {eval_time: 5m, alertname: TerraformDriftDetected, exp_alerts: []}   # for 10m 대기
+      - eval_time: 11m
+        alertname: TerraformDriftDetected
+        exp_alerts:
+          - exp_labels: {severity: warning, category: infra, stack: cloudflare}
+            exp_annotations:
+              summary: "Terraform 코드와 실제 인프라가 다름 (cloudflare)"
+              description: "drift 점검 plan 에 변경이 있음. ~/.local/state/clog-infra/drift-cloudflare.log 확인 → 대시보드 변경을 코드로 옮기거나(plan → 승인 → apply) 되돌린다."
+      - {eval_time: 11m, alertname: TerraformDriftCheckFailing, exp_alerts: []}
+      - {eval_time: 11m, alertname: TerraformDriftMetricMissing, exp_alerts: []}
+  # 점검 실패(uptime) → Failing 만, drift 는 판단 불가라 0 → Detected 없음
+  - interval: 1m
+    input_series:
+      - series: 'clog_terraform_drift{stack="uptime"}'
+        values: '0x100'
+      - series: 'clog_terraform_drift_check_success{stack="uptime"}'
+        values: '0x100'
+    alert_rule_test:
+      - eval_time: 11m
+        alertname: TerraformDriftCheckFailing
+        exp_alerts:
+          - exp_labels: {severity: warning, category: infra, stack: uptime}
+            exp_annotations:
+              summary: "Terraform drift 점검 실패 (uptime)"
+              description: "plan 이 끝까지 돌지 못함(토큰 만료·권한·API 오류 등) — drift 를 판단할 수 없는 상태. ~/.local/state/clog-infra/drift-uptime.log 확인."
+      - {eval_time: 11m, alertname: TerraformDriftDetected, exp_alerts: []}
+  # 점검 멈춤: 마지막 실행 t=0 고정 → 36h + for 10m / 매일 돌면 안 울림
+  - interval: 1m
+    input_series:
+      - series: 'clog_terraform_drift_last_run_timestamp_seconds{stack="cloudflare"}'
+        values: '0x2300'
+      - series: 'clog_terraform_drift_last_run_timestamp_seconds{stack="uptime"}'
+        values: '0x1439 86400x861'
+    alert_rule_test:
+      - {eval_time: 36h5m, alertname: TerraformDriftCheckStale, exp_alerts: []}
+      - eval_time: 36h15m
+        alertname: TerraformDriftCheckStale
+        exp_alerts:
+          - exp_labels: {severity: warning, category: infra, stack: cloudflare}
+            exp_annotations:
+              summary: "Terraform drift 점검이 36시간 넘게 안 돎 (cloudflare)"
+              description: "마지막 점검 1d 12h 15m 0s 전. crontab -l(infra scripts/crontab.txt)·cron 서비스·~/.local/state/clog-infra/drift-check.log 확인."
+  # cloudflare 지표만 없음 → cloudflare 만 Missing
+  - interval: 1m
+    input_series:
+      - series: 'clog_terraform_drift_last_run_timestamp_seconds{stack="uptime"}'
+        values: '0+60x100'
+    alert_rule_test:
+      - {eval_time: 50m, alertname: TerraformDriftMetricMissing, exp_alerts: []}
+      - eval_time: 61m
+        alertname: TerraformDriftMetricMissing
+        exp_alerts:
+          - exp_labels: {severity: warning, category: infra, stack: cloudflare}
+            exp_annotations:
+              summary: "Terraform drift 지표 없음 (cloudflare)"
+              description: "/var/lib/node_exporter/textfile_collector/clog_terraform_drift.prom 에 이 stack 이 없음. 새 stack 은 drift-check.sh STACKS·이 룰에 함께 추가."

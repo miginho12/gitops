@@ -162,6 +162,55 @@ spec:
             summary: "Terraform state 백업 지표 없음 ({{`{{ $labels.stack }}`}})"
             description: "clog_tfstate_backup_last_success_timestamp_seconds{stack=\"{{`{{ $labels.stack }}`}}\"} 가 1시간째 없음. /var/lib/node_exporter/textfile_collector/clog_tfstate_backup_{{`{{ $labels.stack }}`}}.prom 과 노트북 pull.log 의 TFSTATE 줄 확인."
 
+        # ── Terraform drift 주기 점검 (2026-11-14, ADR-096 후속) ──
+        # infra 저장소 scripts/drift-check.sh 가 매일 07:00 KST(user crontab) 읽기 전용 plan → textfile 지표.
+        # 대시보드·API 로 직접 바꾼 설정(코드와 실제의 차이)을 사람이 plan 을 돌리기 전에 알린다.
+        - alert: TerraformDriftDetected
+          expr: |
+            max by (stack) (clog_terraform_drift) == 1
+          for: 10m
+          labels:
+            severity: warning
+            category: infra
+          annotations:
+            summary: "Terraform 코드와 실제 인프라가 다름 ({{`{{ $labels.stack }}`}})"
+            description: "drift 점검 plan 에 변경이 있음. ~/.local/state/clog-infra/drift-{{`{{ $labels.stack }}`}}.log 확인 → 대시보드 변경을 코드로 옮기거나(plan → 승인 → apply) 되돌린다."
+
+        - alert: TerraformDriftCheckFailing
+          expr: |
+            max by (stack) (clog_terraform_drift_check_success) == 0
+          for: 10m
+          labels:
+            severity: warning
+            category: infra
+          annotations:
+            summary: "Terraform drift 점검 실패 ({{`{{ $labels.stack }}`}})"
+            description: "plan 이 끝까지 돌지 못함(토큰 만료·권한·API 오류 등) — drift 를 판단할 수 없는 상태. ~/.local/state/clog-infra/drift-{{`{{ $labels.stack }}`}}.log 확인."
+
+        - alert: TerraformDriftCheckStale
+          expr: |
+            time() - max by (stack) (clog_terraform_drift_last_run_timestamp_seconds) > 36 * 3600
+          for: 10m
+          labels:
+            severity: warning
+            category: infra
+          annotations:
+            summary: "Terraform drift 점검이 36시간 넘게 안 돎 ({{`{{ $labels.stack }}`}})"
+            description: "마지막 점검 {{`{{ $value | humanizeDuration }}`}} 전. crontab -l(infra scripts/crontab.txt)·cron 서비스·~/.local/state/clog-infra/drift-check.log 확인."
+
+        - alert: TerraformDriftMetricMissing
+          expr: |
+            absent(clog_terraform_drift_last_run_timestamp_seconds{stack="uptime"})
+            or
+            absent(clog_terraform_drift_last_run_timestamp_seconds{stack="cloudflare"})
+          for: 1h
+          labels:
+            severity: warning
+            category: infra
+          annotations:
+            summary: "Terraform drift 지표 없음 ({{`{{ $labels.stack }}`}})"
+            description: "/var/lib/node_exporter/textfile_collector/clog_terraform_drift.prom 에 이 stack 이 없음. 새 stack 은 drift-check.sh STACKS·이 룰에 함께 추가."
+
         # ── Loki 보존 삭제 동작 감시 (2026-11-10, 감사 M5) ──
         # 보존 삭제는 compactor 실행(10분 주기) 안에서 일어난다. 설정만 있고 실제로 안 지워지던 상태가
         # 144일간 아무도 모르게 지속됐다 → "마지막 성공 실행" 이 3시간 넘게 멈추면 알린다.
