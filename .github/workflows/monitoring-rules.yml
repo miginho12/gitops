@@ -34,7 +34,7 @@ jobs:
         with:
           version: v3.21.1        # Pi 의 helm 과 같은 버전
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
 
