@@ -294,25 +294,154 @@ loki:
 
 
 # ============================================================
-# Promtail (DaemonSet - 모든 노드의 Pod 로그 수집)
+# Grafana Alloy (DaemonSet - 모든 노드의 Pod 로그 수집, 2026-11-14 promtail 대체, ADR-101)
 # ============================================================
-promtail:
-  config:
-    clients:
-      - url: http://monitoring-loki.monitoring.svc:3100/loki/api/v1/push
-    
-    # Pod 메타데이터 (namespace, pod, container) 자동 첨부
-    snippets:
-      pipelineStages:
-        - cri: {}
-  
-  resources:
-    requests:
-      memory: 50Mi
-      cpu: 50m
-    limits:
-      memory: 150Mi
-  
-  # ServiceMonitor (Promtail 자신도 메트릭 노출)
+# 설정은 promtail 설정을 공식 변환기로 옮긴 것: alloy convert --source-format=promtail (Alloy v1.21.3)
+#  → 라벨 app·instance·component·node_name·namespace·job·pod·container(+filename·stream) 이 promtail 과 같다.
+#    로그 백업(backup-export.sh)은 {namespace="prod"} 에 의존.
+# promtail 지표에 의존하는 알림·대시보드 없음(Alloy 는 지표 이름이 다름).
+alloy:
+  alloy:
+    configMap:
+      content: |
+        discovery.kubernetes "kubernetes_pods" {
+        	role = "pod"
+
+        	selectors {
+        		role  = "pod"
+        		field = "spec.nodeName=" + coalesce(sys.env("HOSTNAME"), constants.hostname)
+        	}
+        }
+
+        loki.process "kubernetes_pods" {
+        	forward_to = [loki.write.default.receiver]
+
+        	stage.cri { }
+        }
+
+        discovery.relabel "kubernetes_pods" {
+        	targets = discovery.kubernetes.kubernetes_pods.targets
+
+        	rule {
+        		source_labels = ["__meta_kubernetes_pod_controller_name"]
+        		regex         = "([0-9a-z-.]+?)(-[0-9a-f]{8,10})?"
+        		target_label  = "__tmp_controller_name"
+        	}
+
+        	rule {
+        		source_labels = ["__meta_kubernetes_pod_label_app_kubernetes_io_name", "__meta_kubernetes_pod_label_app", "__tmp_controller_name", "__meta_kubernetes_pod_name"]
+        		regex         = "^;*([^;]+)(;.*)?$"
+        		target_label  = "app"
+        	}
+
+        	rule {
+        		source_labels = ["__meta_kubernetes_pod_label_app_kubernetes_io_instance", "__meta_kubernetes_pod_label_instance"]
+        		regex         = "^;*([^;]+)(;.*)?$"
+        		target_label  = "instance"
+        	}
+
+        	rule {
+        		source_labels = ["__meta_kubernetes_pod_label_app_kubernetes_io_component", "__meta_kubernetes_pod_label_component"]
+        		regex         = "^;*([^;]+)(;.*)?$"
+        		target_label  = "component"
+        	}
+
+        	rule {
+        		source_labels = ["__meta_kubernetes_pod_node_name"]
+        		target_label  = "node_name"
+        	}
+
+        	rule {
+        		source_labels = ["__meta_kubernetes_namespace"]
+        		target_label  = "namespace"
+        	}
+
+        	rule {
+        		source_labels = ["namespace", "app"]
+        		separator     = "/"
+        		target_label  = "job"
+        	}
+
+        	rule {
+        		source_labels = ["__meta_kubernetes_pod_name"]
+        		target_label  = "pod"
+        	}
+
+        	rule {
+        		source_labels = ["__meta_kubernetes_pod_container_name"]
+        		target_label  = "container"
+        	}
+
+        	rule {
+        		source_labels = ["__meta_kubernetes_pod_uid", "__meta_kubernetes_pod_container_name"]
+        		separator     = "/"
+        		target_label  = "__path__"
+        		replacement   = "/var/log/pods/*$1/*.log"
+        	}
+
+        	rule {
+        		source_labels = ["__meta_kubernetes_pod_annotationpresent_kubernetes_io_config_hash", "__meta_kubernetes_pod_annotation_kubernetes_io_config_hash", "__meta_kubernetes_pod_container_name"]
+        		separator     = "/"
+        		regex         = "true/(.*)"
+        		target_label  = "__path__"
+        		replacement   = "/var/log/pods/*$1/*.log"
+        	}
+        }
+
+        loki.source.file "kubernetes_pods" {
+        	targets    = discovery.relabel.kubernetes_pods.output
+        	forward_to = [loki.process.kubernetes_pods.receiver]
+
+        	file_match {
+        		enabled = true
+        	}
+        	// promtail 이 어디까지 읽었는지(hostPath /run/promtail)를 처음 한 번만 가져온다 → 전환 때 공백·중복 없이 이어 읽기.
+        	// Alloy 자신의 positions 가 storagePath(hostPath /var/lib/alloy)에 생긴 뒤엔 쓰이지 않는다(후속 커밋에서 제거).
+        	legacy_positions_file = "/run/promtail/positions.yaml"
+        }
+
+        loki.write "default" {
+        	endpoint {
+        		url = "http://monitoring-loki.monitoring.svc:3100/loki/api/v1/push"
+        	}
+        	external_labels = {}
+        }
+    # Alloy 의 positions·WAL 을 노드에 남긴다 — 기본 /tmp/alloy(Pod 안)면 재시작마다 legacy(promtail) positions 를
+    # 다시 가져와 같은 로그를 또 보낸다(중복).
+    storagePath: /var/lib/alloy/data
+    mounts:
+      varlog: true            # /var/log/pods (읽기 전용)
+      extra:
+        - name: alloy-data
+          mountPath: /var/lib/alloy
+        - name: promtail-positions
+          mountPath: /run/promtail
+          readOnly: true
+    # promtail 과 같은 조건: root(노드 로그 파일 읽기), 루트 파일시스템 읽기 전용, capability 없음
+    securityContext:
+      runAsUser: 0
+      runAsGroup: 0
+      allowPrivilegeEscalation: false
+      readOnlyRootFilesystem: true
+      capabilities:
+        drop: ["ALL"]
+    resources:
+      requests:
+        memory: 64Mi
+        cpu: 50m
+      limits:
+        memory: 256Mi
+  controller:
+    type: daemonset
+    volumes:
+      extra:
+        - name: alloy-data
+          hostPath:
+            path: /var/lib/alloy
+            type: DirectoryOrCreate
+        - name: promtail-positions
+          hostPath:
+            path: /run/promtail
+            type: DirectoryOrCreate
   serviceMonitor:
     enabled: true

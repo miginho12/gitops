@@ -17,6 +17,8 @@ dependencies:
     # StatefulSet serviceName·selector·volumeClaimTemplates 동일(렌더 비교) → 롤링, PVC 유지.
     version: "20.2.1"
     repository: https://grafana-community.github.io/helm-charts
-  - name: promtail
-    version: "6.16.6"
+  - name: alloy
+    # 2026-11-14 promtail 6.16.6(앱 3.0.0, 차트 deprecated·Promtail EOL 2026-03-02) → Grafana Alloy(ADR-101).
+    # 1.15.0 = Alloy v1.21.3, 10-29 배포(2주 원칙 — 1.16.0 은 11-13).
+    version: "1.15.0"
     repository: https://grafana.github.io/helm-charts
