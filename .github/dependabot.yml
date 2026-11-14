@@ -1,0 +1,34 @@
+# Dependabot (2026-11-14)
+# ⚠ gitops 는 Git = 클러스터 상태. monitoring·sealed-secrets 는 ArgoCD 자동 sync 라 Helm PR 병합 = 즉시 업그레이드.
+#   PR 은 제안·알림으로만 받고, 업그레이드 노트(Breaking changes) 확인 → 사람이 하나씩 병합한다(자동 병합 없음).
+# - 차트마다 개별 PR(묶지 않음) — 차트마다 영향이 달라 따로 판단·되돌리기
+# - cooldown 14일: 배포 직후 버전은 피한다(ADR-095·096 버전 원칙)
+# - monitoring 차트 변경 PR 에는 monitoring-rules(promtool) CI 가 돈다. Chart.lock 이 함께 갱신되는지 확인.
+version: 2
+updates:
+  - package-ecosystem: "helm"
+    directories:
+      - "/apps/monitoring"
+      - "/apps/sealed-secrets"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "Asia/Seoul"
+    cooldown:
+      default-days: 14
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "chore(deps)"
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "Asia/Seoul"
+    cooldown:
+      default-days: 14
+    commit-message:
+      prefix: "chore(deps)"
