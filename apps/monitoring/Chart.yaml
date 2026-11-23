@@ -9,7 +9,7 @@ dependencies:
   - name: kube-prometheus-stack
     # 2026-11-14 86.2.3 → 92.17.0(operator 0.94.2, 10-31 배포 — 93.3.0 은 1일차라 보류). 업그레이드 노트: 87·88·91 CRD(ArgoCD SSA 가 갱신),
     # 90 control-plane ServiceMonitor 인증 → authorization(SA 토큰 Secret 자동 생성), 92 nodeSelector linux(재시작 1회)
-    version: "92.17.0"
+    version: 93.9.0
     repository: https://prometheus-community.github.io/helm-charts
   - name: loki
     # 2026-11-14 grafana/helm-charts 6.16.0(Loki 3.1.1) → grafana-community 20.2.1(Loki 3.7.9, 10-31 배포).
